@@ -2234,6 +2234,7 @@ dependencies = [
  "rust_minidump_writer_linux",
  "static_prefs",
  "storage",
+ "tabs_bridge",
  "tokio-reactor",
  "tokio-threadpool",
  "unic-langid",
@@ -5176,6 +5177,26 @@ dependencies = [
  "quote",
  "syn",
  "unicode-xid",
+]
+
+[[package]]
+name = "tabs_bridge"
+version = "0.1.0"
+dependencies = [
+ "atomic_refcell",
+ "cstr",
+ "golden_gate",
+ "interrupt-support",
+ "moz_task",
+ "nserror",
+ "nsstring",
+ "once_cell",
+ "serde",
+ "serde_json",
+ "sql-support",
+ "storage_variant",
+ "thin-vec",
+ "xpcom",
 ]
 
 [[package]]
