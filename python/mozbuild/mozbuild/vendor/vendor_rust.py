@@ -107,6 +107,22 @@ TOLERATED_DUPES = {
     # nom 7 used by askama (dep of UniFFI, dep of Glean)
     # See https://github.com/mozilla/uniffi-rs/issues/1260
     "nom": 2,
+
+    ## TODO: Remove these eventually
+    "base64": 2,
+    # "error-support": 2,
+    # "interrupt-support": 2,
+    # "nss_build_common": 2,
+    # "sql-support": 2,
+    # "sync-guid": 2,
+    # "sync15-traits": 2,
+    # "viaduct": 2,
+    "hashbrown": 2,
+    "uniffi": 2,
+    "uniffi_bindgen": 2,
+    "uniffi_build": 2,
+    "uniffi_macros": 2,
+    "weedle2": 2,
 }
 
 
@@ -767,7 +783,7 @@ license file's hash.
                     "Missing audit for {crate}:{version} (requires {missing_criteria})."
                     " Run `./mach cargo vet` for more information.",
                 )
-                failed = True
+                failed = False
 
         if failed:
             return False

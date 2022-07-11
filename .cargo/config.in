@@ -7,6 +7,11 @@ git = "https://github.com/smol-rs/async-task"
 replace-with = "vendored-sources"
 rev = "f6488e35beccb26eb6e85847b02aa78a42cd3d0e"
 
+[source."https://github.com/skhamis/application-services"]
+git = "https://github.com/skhamis/application-services"
+replace-with = "vendored-sources"
+rev = "c725c725b9f870e813329938bbeda94af8fb020a"
+
 [source."https://github.com/rust-minidump/minidump-writer.git"]
 git = "https://github.com/rust-minidump/minidump-writer.git"
 replace-with = "vendored-sources"
@@ -41,11 +46,6 @@ rev = "44eca95823bb57e964cf7b6d9791ed2ccb4b2108"
 git = "https://github.com/mozilla/audioipc"
 replace-with = "vendored-sources"
 rev = "6848974a4a91ebd3e18333c9a96a421d619a2dc8"
-
-[source."https://github.com/mozilla/application-services"]
-git = "https://github.com/mozilla/application-services"
-replace-with = "vendored-sources"
-rev = "2689788cecf24c385e6b7440e3aa1a89c511f14a"
 
 [source."https://github.com/mozilla-spidermonkey/jsparagus"]
 git = "https://github.com/mozilla-spidermonkey/jsparagus"
