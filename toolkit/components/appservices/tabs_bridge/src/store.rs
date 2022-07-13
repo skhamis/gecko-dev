@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 /******************************
 *
 * THIS FILE IS A COPY OF THE ONE IN webext_storage_bridge
 * AND SHOULD LOOK INTO COMBINING
 */
 
- use std::{
+use std::{
     fs::remove_file,
     mem,
     path::PathBuf,
@@ -19,7 +18,7 @@
 use golden_gate::{ApplyResults, BridgedEngine, Guid, IncomingEnvelope};
 use interrupt_support::SqlInterruptHandle;
 use once_cell::sync::OnceCell;
-use crate::faketab_storage::TabsStore;
+use tabs::TabsStore;
 
 use crate::error::{Error, Result};
 
@@ -50,7 +49,7 @@ pub struct LazyStore {
 /// doesn't require locking.
 struct InterruptStore {
     inner: Mutex<TabsStore>,
-    handle: Arc<SqlInterruptHandle>,
+    //handle: Arc<SqlInterruptHandle>,
 }
 
 impl LazyStore {
@@ -69,7 +68,7 @@ impl LazyStore {
     /// main thread.
     pub fn interrupt(&self) {
         if let Some(outer) = self.store.get() {
-            outer.handle.interrupt();
+            //outer.handle.interrupt();
         }
     }
 
@@ -82,10 +81,10 @@ impl LazyStore {
             .get_or_try_init(|| match self.config.get() {
                 Some(config) => {
                     let store = init_store(config)?;
-                    let handle = store.interrupt_handle();
+                    //let handle = store.interrupt_handle();
                     Ok(InterruptStore {
                         inner: Mutex::new(store),
-                        handle,
+                        //handle,
                     })
                 }
                 None => Err(Error::NotConfigured),
@@ -99,21 +98,22 @@ impl LazyStore {
     /// This should only be called from a background thread or task queue,
     /// because closing the database also does I/O.
     pub fn teardown(self) -> Result<()> {
-        if let Some(store) = self
-            .store
-            .into_inner()
-            .map(|outer| outer.inner.into_inner().unwrap())
-        {
-            if let Err((store, error)) = store.close() {
-                // Since we're most likely being called during shutdown, leak
-                // the store on error...it'll be cleaned up when the process
-                // quits, anyway. We don't want to drop it, because its
-                // destructor will try to close it again, and panic on error.
-                // That'll become a shutdown crash, which we want to avoid.
-                mem::forget(store);
-                return Err(error.into());
-            }
-        }
+        // if let Some(store) = self
+        //     .store
+        //     .into_inner()
+        //     .map(|outer| outer.inner.into_inner().unwrap())
+        // SAMTODO: NEED TO IMPLEMENT CLOSE HERE
+        // {
+        //     if let Err((store, error)) = store.close() {
+        //         // Since we're most likely being called during shutdown, leak
+        //         // the store on error...it'll be cleaned up when the process
+        //         // quits, anyway. We don't want to drop it, because its
+        //         // destructor will try to close it again, and panic on error.
+        //         // That'll become a shutdown crash, which we want to avoid.
+        //         mem::forget(store);
+        //         return Err(error.into());
+        //     }
+        // }
         Ok(())
     }
 }

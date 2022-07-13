@@ -12,10 +12,8 @@ use nserror::{
 };
 use serde_json::error::Error as JsonError;
 
-
 /// A specialized `Result` type for extension storage operations.
 pub type Result<T> = result::Result<T, Error>;
-
 
 /// The error type for extension storage operations. Errors can be converted
 /// into `nsresult` codes, and include more detailed messages that can be passed
@@ -76,11 +74,11 @@ impl From<Error> for nsresult {
             Error::MalformedString(_) => NS_ERROR_INVALID_ARG,
             Error::AlreadyConfigured => NS_ERROR_ALREADY_INITIALIZED,
             Error::NotConfigured => NS_ERROR_NOT_INITIALIZED,
-            Error::AlreadyConfigured => write!(f, "The storage area is already configured"),
-            Error::NotConfigured => write!(
-                f,
-                "The storage area must be configured by calling `configure` first"
-            ),
+            // Error::AlreadyConfigured => write!(f, "The storage area is already configured"),
+            // Error::NotConfigured => write!(
+            //     f,
+            //     "The storage area must be configured by calling `configure` first"
+            // ),
         }
     }
 }
@@ -91,6 +89,7 @@ impl fmt::Display for Error {
             Error::Nsresult(result) => write!(f, "Operation failed with {}", result),
             Error::GoldenGate(error) => error.fmt(f),
             Error::MalformedString(error) => error.fmt(f),
+            _ => Ok(()),
         }
     }
 }
