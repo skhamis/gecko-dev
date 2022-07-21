@@ -1376,7 +1376,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "url",
- "viaduct",
+ "viaduct 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "winapi",
  "wineventlog",
  "wio",
@@ -1612,6 +1612,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2d2f06b9cac1506ece98fe3231e3cc9c4410ec3d5b1f24ae1c8946f0742cdefc"
 dependencies = [
  "version_check",
+]
+
+[[package]]
+name = "error-support"
+version = "0.1.0"
+dependencies = [
+ "log",
 ]
 
 [[package]]
@@ -1867,7 +1874,7 @@ dependencies = [
  "static_prefs",
  "thin-vec",
  "url",
- "viaduct",
+ "viaduct 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "xpcom",
 ]
 
@@ -2252,7 +2259,7 @@ dependencies = [
  "unic-langid",
  "unic-langid-ffi",
  "url",
- "viaduct",
+ "viaduct 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "webext_storage_bridge",
  "webrender_bindings",
  "wgpu_bindings",
@@ -2406,14 +2413,14 @@ version = "0.1.0"
 dependencies = [
  "atomic_refcell",
  "cstr",
- "interrupt-support",
+ "interrupt-support 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "log",
  "moz_task",
  "nserror",
  "nsstring",
  "serde_json",
  "storage_variant",
- "sync15-traits",
+ "sync15-traits 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "thin-vec",
  "xpcom",
 ]
@@ -2728,6 +2735,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if 1.0.0",
+]
+
+[[package]]
+name = "interrupt-support"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "parking_lot 0.12.999",
+ "rusqlite",
 ]
 
 [[package]]
@@ -3826,10 +3842,9 @@ dependencies = [
 [[package]]
 name = "nss"
 version = "0.1.0"
-source = "git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a#c725c725b9f870e813329938bbeda94af8fb020a"
 dependencies = [
  "base64 0.13.0",
- "error-support",
+ "error-support 0.1.0",
  "nss_sys",
  "serde",
  "serde_derive",
@@ -3839,15 +3854,18 @@ dependencies = [
 [[package]]
 name = "nss_build_common"
 version = "0.1.0"
+
+[[package]]
+name = "nss_build_common"
+version = "0.1.0"
 source = "git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a#c725c725b9f870e813329938bbeda94af8fb020a"
 
 [[package]]
 name = "nss_sys"
 version = "0.1.0"
-source = "git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a#c725c725b9f870e813329938bbeda94af8fb020a"
 dependencies = [
  "libsqlite3-sys",
- "nss_build_common",
+ "nss_build_common 0.1.0",
 ]
 
 [[package]]
@@ -4498,10 +4516,9 @@ dependencies = [
 [[package]]
 name = "rc_crypto"
 version = "0.1.0"
-source = "git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a#c725c725b9f870e813329938bbeda94af8fb020a"
 dependencies = [
  "base64 0.13.0",
- "error-support",
+ "error-support 0.1.0",
  "hawk",
  "hex",
  "nss",
@@ -5039,13 +5056,27 @@ dependencies = [
 [[package]]
 name = "sql-support"
 version = "0.1.0"
+dependencies = [
+ "ffi-support",
+ "interrupt-support 0.1.0",
+ "lazy_static",
+ "log",
+ "nss_build_common 0.1.0",
+ "rusqlite",
+ "tempfile",
+ "thiserror",
+]
+
+[[package]]
+name = "sql-support"
+version = "0.1.0"
 source = "git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a#c725c725b9f870e813329938bbeda94af8fb020a"
 dependencies = [
  "ffi-support",
- "interrupt-support",
+ "interrupt-support 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "lazy_static",
  "log",
- "nss_build_common",
+ "nss_build_common 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "rusqlite",
  "tempfile",
  "thiserror",
@@ -5221,6 +5252,15 @@ dependencies = [
 [[package]]
 name = "sync-guid"
 version = "0.1.0"
+dependencies = [
+ "base64 0.13.0",
+ "rand 0.8.5",
+ "serde",
+]
+
+[[package]]
+name = "sync-guid"
+version = "0.1.0"
 source = "git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a#c725c725b9f870e813329938bbeda94af8fb020a"
 dependencies = [
  "base64 0.13.0",
@@ -5232,25 +5272,37 @@ dependencies = [
 [[package]]
 name = "sync15"
 version = "0.1.0"
-source = "git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a#c725c725b9f870e813329938bbeda94af8fb020a"
 dependencies = [
  "anyhow",
  "base16",
  "base64 0.13.0",
- "error-support",
+ "error-support 0.1.0",
  "ffi-support",
- "interrupt-support",
+ "interrupt-support 0.1.0",
  "lazy_static",
  "log",
  "rc_crypto",
  "serde",
  "serde_derive",
  "serde_json",
- "sync-guid",
- "sync15-traits",
+ "sync-guid 0.1.0",
+ "sync15-traits 0.1.0",
  "thiserror",
  "url",
- "viaduct",
+ "viaduct 0.1.0",
+]
+
+[[package]]
+name = "sync15-traits"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ffi-support",
+ "log",
+ "serde",
+ "serde_json",
+ "sync-guid 0.1.0",
+ "url",
 ]
 
 [[package]]
@@ -5263,7 +5315,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
- "sync-guid",
+ "sync-guid 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "url",
 ]
 
@@ -5282,21 +5334,20 @@ dependencies = [
 [[package]]
 name = "tabs"
 version = "0.1.0"
-source = "git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a#c725c725b9f870e813329938bbeda94af8fb020a"
 dependencies = [
  "anyhow",
- "error-support",
- "interrupt-support",
+ "error-support 0.1.0",
+ "interrupt-support 0.1.0",
  "lazy_static",
  "log",
  "rusqlite",
  "serde",
  "serde_derive",
  "serde_json",
- "sql-support",
- "sync-guid",
+ "sql-support 0.1.0",
+ "sync-guid 0.1.0",
  "sync15",
- "sync15-traits",
+ "sync15-traits 0.1.0",
  "thiserror",
  "uniffi 0.18.0",
  "uniffi_build 0.18.0",
@@ -5311,14 +5362,15 @@ dependencies = [
  "atomic_refcell",
  "cstr",
  "golden_gate",
- "interrupt-support",
+ "interrupt-support 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "moz_task",
  "nserror",
  "nsstring",
  "once_cell",
+ "parking_lot 0.12.999",
  "serde",
  "serde_json",
- "sql-support",
+ "sql-support 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "storage_variant",
  "tabs",
  "thin-vec",
@@ -6001,6 +6053,21 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "viaduct"
 version = "0.1.0"
+dependencies = [
+ "ffi-support",
+ "log",
+ "once_cell",
+ "prost",
+ "prost-derive",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "url",
+]
+
+[[package]]
+name = "viaduct"
+version = "0.1.0"
 source = "git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a#c725c725b9f870e813329938bbeda94af8fb020a"
 dependencies = [
  "ffi-support",
@@ -6153,19 +6220,19 @@ name = "webext-storage"
 version = "0.1.0"
 source = "git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a#c725c725b9f870e813329938bbeda94af8fb020a"
 dependencies = [
- "error-support",
+ "error-support 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "ffi-support",
- "interrupt-support",
+ "interrupt-support 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "lazy_static",
  "log",
- "nss_build_common",
+ "nss_build_common 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "rusqlite",
  "serde",
  "serde_derive",
  "serde_json",
- "sql-support",
- "sync-guid",
- "sync15-traits",
+ "sql-support 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
+ "sync-guid 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
+ "sync15-traits 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "thiserror",
  "url",
 ]
@@ -6177,14 +6244,14 @@ dependencies = [
  "atomic_refcell",
  "cstr",
  "golden_gate",
- "interrupt-support",
+ "interrupt-support 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "moz_task",
  "nserror",
  "nsstring",
  "once_cell",
  "serde",
  "serde_json",
- "sql-support",
+ "sql-support 0.1.0 (git+https://github.com/skhamis/application-services?rev=c725c725b9f870e813329938bbeda94af8fb020a)",
  "storage_variant",
  "thin-vec",
  "webext-storage",

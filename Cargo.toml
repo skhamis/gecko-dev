@@ -162,7 +162,7 @@ sql-support = { git = "https://github.com/skhamis/application-services", rev = "
 sync15-traits = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
 viaduct = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
 webext-storage = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
-tabs = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
+tabs = { path = "../application-services/components/tabs" }
 
 # Patch mio 0.6 to use winapi 0.3 and miow 0.3, getting rid of winapi 0.2.
 # There is not going to be new version of mio 0.6, mio now being >= 0.7.11.

@@ -24,6 +24,7 @@ pub enum Error {
     GoldenGate(GoldenGateError),
     MalformedString(Box<dyn error::Error + Send + Sync + 'static>),
     AlreadyConfigured,
+    AlreadyTornDown,
     NotConfigured,
 }
 
@@ -74,11 +75,7 @@ impl From<Error> for nsresult {
             Error::MalformedString(_) => NS_ERROR_INVALID_ARG,
             Error::AlreadyConfigured => NS_ERROR_ALREADY_INITIALIZED,
             Error::NotConfigured => NS_ERROR_NOT_INITIALIZED,
-            // Error::AlreadyConfigured => write!(f, "The storage area is already configured"),
-            // Error::NotConfigured => write!(
-            //     f,
-            //     "The storage area must be configured by calling `configure` first"
-            // ),
+            Error::AlreadyTornDown => NS_ERROR_UNEXPECTED,
         }
     }
 }
