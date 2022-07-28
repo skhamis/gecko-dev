@@ -43,7 +43,8 @@ use golden_gate::{ApplyTask, FerryTask};
 use moz_task::{self, DispatchOptions, TaskRunnable};
 use nserror::{nsresult, NS_OK};
 use nsstring::{nsACString, nsCString, nsString};
-use parking_lot::Mutex;
+use store::TabsStoreBridge;
+//use parking_lot::Mutex;
 use std::{
     cell::{Ref, RefCell},
     convert::TryInto,
@@ -52,7 +53,7 @@ use std::{
     path::Path,
     path::PathBuf,
     str,
-    sync::Arc,
+    sync::{Arc, Mutex, MutexGuard},
 };
 use tabs::{TabsEngine, TabsStore};
 use thin_vec::ThinVec;
@@ -80,7 +81,8 @@ pub struct InitTabsBridge {
     /// The store is lazily initialized on the task queue the first time it's
     /// used.
     //store: RefCell<Option<Arc<TabsStore>>>,
-    store: RefCell<Option<Arc<Mutex<TabsEngine>>>>,
+    //store: RefCell<Option<Arc<Mutex<TabsStore>>>>,
+    store: RefCell<Option<Arc<TabsStoreBridge>>>,
 }
 
 impl TabsBridge {
@@ -88,18 +90,21 @@ impl TabsBridge {
     pub fn new(db_path: impl AsRef<Path>) -> Result<RefPtr<TabsBridge>> {
         let queue = moz_task::create_background_task_queue(cstr!("TabsBridge"))?;
         //TODO
-        let engine = TabsEngine::new(Arc::new(TabsStore::new(db_path)));
+        //let engine = TabsEngine::new(Arc::new(TabsStore::new(db_path)));
+        let store = TabsStoreBridge {
+            inner: Mutex::new(TabsStore::new(db_path)),
+        };
         Ok(TabsBridge::allocate(InitTabsBridge {
             queue,
-            store: RefCell::new(Some(Arc::new(Mutex::new(engine)))),
+            store: RefCell::new(Some(Arc::new(store))),
         }))
     }
 
-    /// Returns the store for this area, or an error if it's been torn down.
-    fn store(&self) -> Result<Ref<'_, Arc<TabsEngine>>> {
+    /// Returns the store that can call the bridged engine, or an error if it's been torn down.
+    fn store(&self) -> Result<Ref<'_, Arc<TabsStoreBridge>>> {
         let maybe_store = self.store.borrow();
         if maybe_store.is_some() {
-            Ok(Ref::map(maybe_store, |s| s.as_ref().unwrap().lock()))
+            Ok(Ref::map(maybe_store, |s| s.as_ref().unwrap()))
         } else {
             Err(Error::AlreadyTornDown)
         }
@@ -138,8 +143,8 @@ impl TabsBridge {
         )
     );
     fn get_last_sync(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        let store = &*self.store()?;
-        Ok(FerryTask::for_last_sync(store, callback)?.dispatch(&self.queue)?)
+        let engine = &*self.store()?;
+        Ok(FerryTask::for_last_sync(engine, callback)?.dispatch(&self.queue)?)
     }
 
     xpcom_method!(
@@ -153,10 +158,13 @@ impl TabsBridge {
         last_sync_millis: i64,
         callback: &mozIBridgedSyncEngineCallback,
     ) -> Result<()> {
-        Ok(
-            FerryTask::for_set_last_sync(&*self.store()?.lock(), last_sync_millis, callback)?
-                .dispatch(&self.queue)?,
-        )
+        // Ok(FerryTask::for_set_last_sync(
+        //     &*self.bridged_engine()?.lock(),
+        //     last_sync_millis,
+        //     callback,
+        // )?
+        // .dispatch(&self.queue)?)
+        unimplemented!();
     }
 
     xpcom_method!(
@@ -165,7 +173,8 @@ impl TabsBridge {
         )
     );
     fn get_sync_id(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        Ok(FerryTask::for_sync_id(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
+        // Ok(FerryTask::for_sync_id(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
+        unimplemented!();
     }
 
     xpcom_method!(
@@ -174,7 +183,8 @@ impl TabsBridge {
         )
     );
     fn reset_sync_id(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        Ok(FerryTask::for_reset_sync_id(&*self.store()?, callback)?.dispatch(&self.queue)?)
+        //Ok(FerryTask::for_reset_sync_id(&*self.store()?, callback)?.dispatch(&self.queue)?)
+        unimplemented!();
     }
 
     xpcom_method!(
@@ -188,10 +198,11 @@ impl TabsBridge {
         new_sync_id: &nsACString,
         callback: &mozIBridgedSyncEngineCallback,
     ) -> Result<()> {
-        Ok(
-            FerryTask::for_ensure_current_sync_id(&*self.store()?.lock(), new_sync_id, callback)?
-                .dispatch(&self.queue)?,
-        )
+        // Ok(
+        //     FerryTask::for_ensure_current_sync_id(&*self.store()?.lock(), new_sync_id, callback)?
+        //         .dispatch(&self.queue)?,
+        // )
+        unimplemented!();
     }
 
     xpcom_method!(
@@ -200,7 +211,8 @@ impl TabsBridge {
         )
     );
     fn sync_started(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        Ok(FerryTask::for_sync_started(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
+        // Ok(FerryTask::for_sync_started(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
+        unimplemented!();
     }
 
     xpcom_method!(
@@ -214,17 +226,19 @@ impl TabsBridge {
         incoming_envelopes_json: Option<&ThinVec<nsCString>>,
         callback: &mozIBridgedSyncEngineCallback,
     ) -> Result<()> {
-        Ok(FerryTask::for_store_incoming(
-            &*self.store()?.lock(),
-            incoming_envelopes_json.map(|v| v.as_slice()).unwrap_or(&[]),
-            callback,
-        )?
-        .dispatch(&self.queue)?)
+        // Ok(FerryTask::for_store_incoming(
+        //     &*self.store()?.lock(),
+        //     incoming_envelopes_json.map(|v| v.as_slice()).unwrap_or(&[]),
+        //     callback,
+        // )?
+        // .dispatch(&self.queue)?)
+        unimplemented!();
     }
 
     xpcom_method!(apply => Apply(callback: *const mozIBridgedSyncEngineApplyCallback));
     fn apply(&self, callback: &mozIBridgedSyncEngineApplyCallback) -> Result<()> {
-        Ok(ApplyTask::new(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
+        // Ok(ApplyTask::new(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
+        unimplemented!();
     }
 
     xpcom_method!(
@@ -240,13 +254,14 @@ impl TabsBridge {
         uploaded_ids: Option<&ThinVec<nsCString>>,
         callback: &mozIBridgedSyncEngineCallback,
     ) -> Result<()> {
-        Ok(FerryTask::for_set_uploaded(
-            &*self.store()?.lock(),
-            server_modified_millis,
-            uploaded_ids.map(|v| v.as_slice()).unwrap_or(&[]),
-            callback,
-        )?
-        .dispatch(&self.queue)?)
+        // Ok(FerryTask::for_set_uploaded(
+        //     &*self.store()?.lock(),
+        //     server_modified_millis,
+        //     uploaded_ids.map(|v| v.as_slice()).unwrap_or(&[]),
+        //     callback,
+        // )?
+        // .dispatch(&self.queue)?)
+        unimplemented!();
     }
 
     xpcom_method!(
@@ -255,10 +270,11 @@ impl TabsBridge {
         )
     );
     fn sync_finished(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        Ok(
-            FerryTask::for_sync_finished(&*self.store()?.lock(), callback)?
-                .dispatch(&self.queue)?,
-        )
+        // Ok(
+        //     FerryTask::for_sync_finished(&*self.store()?.lock(), callback)?
+        //         .dispatch(&self.queue)?,
+        // )
+        unimplemented!();
     }
 
     xpcom_method!(
@@ -267,7 +283,8 @@ impl TabsBridge {
         )
     );
     fn reset(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        Ok(FerryTask::for_reset(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
+        // Ok(FerryTask::for_reset(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
+        unimplemented!();
     }
 
     xpcom_method!(
@@ -276,6 +293,7 @@ impl TabsBridge {
         )
     );
     fn wipe(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        Ok(FerryTask::for_wipe(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
+        // Ok(FerryTask::for_wipe(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
+        unimplemented!();
     }
 }
