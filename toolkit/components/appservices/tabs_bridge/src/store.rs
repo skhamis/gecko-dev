@@ -23,12 +23,15 @@ use crate::error::{Error, Result};
 // though the impl<'a> sync15
 // One of the earliest tasks should almost certaintly be to combine these two
 pub struct TabsStoreBridge {
-    inner: TabsStore,
+    pub inner: Arc<TabsStore>,
 }
 
 impl TabsStoreBridge {
-    pub fn get(&self) -> Result<TabsStore> {
-        Ok(self.inner)
+    /// Returns the underlying store, initializing it if needed. This method
+    /// should only be called from a background thread or task queue, since
+    /// opening the database does I/O.
+    pub fn get(&self) -> Result<Arc<TabsStore>> {
+        Ok(Arc::clone(&self.inner))
     }
 }
 
@@ -36,25 +39,27 @@ impl BridgedEngine for TabsStoreBridge {
     type Error = Error;
 
     fn last_sync(&self) -> Result<i64> {
-        Ok(Arc::new(self.get()?).bridged_engine().last_sync()?)
+        Ok(self.get()?.bridged_engine().last_sync()?)
     }
 
     fn set_last_sync(&self, last_sync_millis: i64) -> Result<()> {
-        Ok(Arc::new(self.get()?)
+        Ok(self
+            .get()?
             .bridged_engine()
             .set_last_sync(last_sync_millis)?)
     }
 
     fn sync_id(&self) -> Result<Option<String>> {
-        Ok(Arc::new(self.get()?).bridged_engine().sync_id()?)
+        Ok(self.get()?.bridged_engine().sync_id()?)
     }
 
     fn reset_sync_id(&self) -> Result<String> {
-        Ok(Arc::new(self.get()?).bridged_engine().reset_sync_id()?)
+        Ok(self.get()?.bridged_engine().reset_sync_id()?)
     }
 
     fn ensure_current_sync_id(&self, new_sync_id: &str) -> Result<String> {
-        Ok(Arc::new(self.get()?)
+        Ok(self
+            .get()?
             .bridged_engine()
             .ensure_current_sync_id(new_sync_id)?)
     }

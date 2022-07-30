@@ -157,11 +157,16 @@ midir = { git = "https://github.com/mozilla/midir.git", rev = "4c11f0ffb5d6a10de
 minidump_writer_linux = { git = "https://github.com/rust-minidump/minidump-writer.git", rev = "75ada456c92a429704691a85e1cb42fef8cafc0d" }
 
 # application-services overrides to make updating them all simpler.
-interrupt-support = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
-sql-support = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
-sync15-traits = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
-viaduct = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
-webext-storage = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
+# interrupt-support = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
+# sql-support = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
+# sync15-traits = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
+# viaduct = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
+# webext-storage = { git = "https://github.com/skhamis/application-services", rev = "c725c725b9f870e813329938bbeda94af8fb020a" }
+interrupt-support = { path = "../application-services/components/support/interrupt" }
+sql-support = { path = "../application-services/components/support/sql" }
+sync15-traits = { path = "../application-services/components/support/sync15-traits" }
+viaduct = { path = "../application-services/components/viaduct" }
+webext-storage = { path = "../application-services/components/webext-storage" }
 tabs = { path = "../application-services/components/tabs" }
 
 # Patch mio 0.6 to use winapi 0.3 and miow 0.3, getting rid of winapi 0.2.

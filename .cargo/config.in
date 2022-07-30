@@ -7,11 +7,6 @@ git = "https://github.com/smol-rs/async-task"
 replace-with = "vendored-sources"
 rev = "f6488e35beccb26eb6e85847b02aa78a42cd3d0e"
 
-[source."https://github.com/skhamis/application-services"]
-git = "https://github.com/skhamis/application-services"
-replace-with = "vendored-sources"
-rev = "c725c725b9f870e813329938bbeda94af8fb020a"
-
 [source."https://github.com/rust-minidump/minidump-writer.git"]
 git = "https://github.com/rust-minidump/minidump-writer.git"
 replace-with = "vendored-sources"

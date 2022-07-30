@@ -11,6 +11,7 @@ use nserror::{
     NS_ERROR_NOT_IMPLEMENTED, NS_ERROR_NOT_INITIALIZED, NS_ERROR_UNEXPECTED,
 };
 use serde_json::error::Error as JsonError;
+use tabs::error::TabsError;
 
 /// A specialized `Result` type for extension storage operations.
 pub type Result<T> = result::Result<T, Error>;
@@ -21,6 +22,7 @@ pub type Result<T> = result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     Nsresult(nsresult),
+    TabsError(TabsError),
     GoldenGate(GoldenGateError),
     MalformedString(Box<dyn error::Error + Send + Sync + 'static>),
     AlreadyConfigured,
@@ -40,6 +42,12 @@ impl error::Error for Error {
 impl From<nsresult> for Error {
     fn from(result: nsresult) -> Error {
         Error::Nsresult(result)
+    }
+}
+
+impl From<TabsError> for Error {
+    fn from(error: TabsError) -> Error {
+        Error::TabsError(error)
     }
 }
 
@@ -71,6 +79,8 @@ impl From<Error> for nsresult {
     fn from(error: Error) -> nsresult {
         match error {
             Error::Nsresult(result) => result,
+            // SAM TODO: Fix the error parsing here
+            Error::TabsError(e) => NS_ERROR_UNEXPECTED,
             Error::GoldenGate(error) => error.into(),
             Error::MalformedString(_) => NS_ERROR_INVALID_ARG,
             Error::AlreadyConfigured => NS_ERROR_ALREADY_INITIALIZED,
@@ -84,6 +94,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Nsresult(result) => write!(f, "Operation failed with {}", result),
+            Error::TabsError(error) => error.fmt(f),
             Error::GoldenGate(error) => error.fmt(f),
             Error::MalformedString(error) => error.fmt(f),
             _ => Ok(()),

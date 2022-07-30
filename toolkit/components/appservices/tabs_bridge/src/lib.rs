@@ -89,10 +89,12 @@ impl TabsBridge {
     /// Creates a storage area and its task queue.
     pub fn new(db_path: impl AsRef<Path>) -> Result<RefPtr<TabsBridge>> {
         let queue = moz_task::create_background_task_queue(cstr!("TabsBridge"))?;
-        //TODO
+        //let store = TabsStore::new(db_path);
         //let engine = TabsEngine::new(Arc::new(TabsStore::new(db_path)));
         let store = TabsStoreBridge {
-            inner: Mutex::new(TabsStore::new(db_path)),
+            //inner: Mutex::new(TabsStore::new(db_path)),
+            // SAM TODO: Probably not the best way to handle the store
+            inner: Arc::new(TabsStore::new(db_path)),
         };
         Ok(TabsBridge::allocate(InitTabsBridge {
             queue,
@@ -144,6 +146,7 @@ impl TabsBridge {
     );
     fn get_last_sync(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
         let engine = &*self.store()?;
+        //let engine = &Arc::new(&*self.store()?.bridged_engine());
         Ok(FerryTask::for_last_sync(engine, callback)?.dispatch(&self.queue)?)
     }
 
