@@ -79,7 +79,7 @@ impl From<Error> for nsresult {
     fn from(error: Error) -> nsresult {
         match error {
             Error::Nsresult(result) => result,
-            // SAM TODO: Fix the error parsing here
+            // SAM_TODO: Fix the error parsing here
             Error::TabsError(e) => NS_ERROR_UNEXPECTED,
             Error::GoldenGate(error) => error.into(),
             Error::MalformedString(_) => NS_ERROR_INVALID_ARG,

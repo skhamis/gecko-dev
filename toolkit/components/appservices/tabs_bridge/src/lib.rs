@@ -4,30 +4,10 @@
 
 #![allow(non_snake_case)]
 
-//! This crate bridges the WebExtension storage area interfaces in Firefox
-//! Desktop to the extension storage Rust component in Application Services.
-//!
-//! ## How are the WebExtension storage APIs implemented in Firefox?
-//!
-//! There are three storage APIs available for WebExtensions:
-//! `storage.local`, which is stored locally in an IndexedDB database and never
-//! synced to other devices, `storage.sync`, which is stored in a local SQLite
-//! database and synced to all devices signed in to the same Firefox Account,
-//! and `storage.managed`, which is provisioned in a native manifest and
-//! read-only.
-//!
-//! * `storage.local` is implemented in `ExtensionStorageIDB.jsm`.
-//! * `storage.sync` is implemented in a Rust component, `webext_storage`. This
-//!   Rust component is vendored in m-c, and exposed to JavaScript via an XPCOM
-//!   API in `webext_storage_bridge` (this crate). Eventually, we'll change
-//!   `ExtensionStorageSync.jsm` to call the XPCOM API instead of using the
-//!   old Kinto storage adapter.
-//! * `storage.managed` is implemented directly in `parent/ext-storage.js`.
-//!
-//! `webext_storage_bridge` implements the `mozIExtensionStorageArea`
-//! (and, eventually, `mozIBridgedSyncEngine`) interface for `storage.sync`. The
-//! implementation is in `area::StorageSyncArea`, and is backed by the
-//! `webext_storage` component.
+//! This crate bridges the SyncedTabs in Firefox Desktop
+//! to the extension storage Rust component in Application Services.
+
+//! SAM_TODO: Write documentation details equivalent to webextension
 
 #[macro_use]
 extern crate cstr;
@@ -80,8 +60,6 @@ pub struct InitTabsBridge {
     queue: RefPtr<nsISerialEventTarget>,
     /// The store is lazily initialized on the task queue the first time it's
     /// used.
-    //store: RefCell<Option<Arc<TabsStore>>>,
-    //store: RefCell<Option<Arc<Mutex<TabsStore>>>>,
     store: RefCell<Option<Arc<TabsStoreBridge>>>,
 }
 
@@ -93,7 +71,7 @@ impl TabsBridge {
         //let engine = TabsEngine::new(Arc::new(TabsStore::new(db_path)));
         let store = TabsStoreBridge {
             //inner: Mutex::new(TabsStore::new(db_path)),
-            // SAM TODO: Probably not the best way to handle the store
+            // SAM_TODO: We need to look into not creating a new store every time
             inner: Arc::new(TabsStore::new(db_path)),
         };
         Ok(TabsBridge::allocate(InitTabsBridge {
@@ -127,7 +105,7 @@ impl TabsBridge {
 
     xpcom_method!(get_storage_version => GetStorageVersion() -> i32);
     fn get_storage_version(&self) -> Result<i32> {
-        //SAM TODO: Need to investigate storage version
+        //SAM_TODO: Need to investigate storage version
         Ok(1)
     }
 
@@ -146,7 +124,6 @@ impl TabsBridge {
     );
     fn get_last_sync(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
         let engine = &*self.store()?;
-        //let engine = &Arc::new(&*self.store()?.bridged_engine());
         Ok(FerryTask::for_last_sync(engine, callback)?.dispatch(&self.queue)?)
     }
 
@@ -161,13 +138,10 @@ impl TabsBridge {
         last_sync_millis: i64,
         callback: &mozIBridgedSyncEngineCallback,
     ) -> Result<()> {
-        // Ok(FerryTask::for_set_last_sync(
-        //     &*self.bridged_engine()?.lock(),
-        //     last_sync_millis,
-        //     callback,
-        // )?
-        // .dispatch(&self.queue)?)
-        unimplemented!();
+        Ok(
+            FerryTask::for_set_last_sync(&*self.store()?, last_sync_millis, callback)?
+                .dispatch(&self.queue)?,
+        )
     }
 
     xpcom_method!(
@@ -176,8 +150,7 @@ impl TabsBridge {
         )
     );
     fn get_sync_id(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        // Ok(FerryTask::for_sync_id(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
-        unimplemented!();
+        Ok(FerryTask::for_sync_id(&*self.store()?, callback)?.dispatch(&self.queue)?)
     }
 
     xpcom_method!(
@@ -186,8 +159,7 @@ impl TabsBridge {
         )
     );
     fn reset_sync_id(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        //Ok(FerryTask::for_reset_sync_id(&*self.store()?, callback)?.dispatch(&self.queue)?)
-        unimplemented!();
+        Ok(FerryTask::for_reset_sync_id(&*self.store()?, callback)?.dispatch(&self.queue)?)
     }
 
     xpcom_method!(
@@ -201,11 +173,10 @@ impl TabsBridge {
         new_sync_id: &nsACString,
         callback: &mozIBridgedSyncEngineCallback,
     ) -> Result<()> {
-        // Ok(
-        //     FerryTask::for_ensure_current_sync_id(&*self.store()?.lock(), new_sync_id, callback)?
-        //         .dispatch(&self.queue)?,
-        // )
-        unimplemented!();
+        Ok(
+            FerryTask::for_ensure_current_sync_id(&*self.store()?, new_sync_id, callback)?
+                .dispatch(&self.queue)?,
+        )
     }
 
     xpcom_method!(
@@ -214,8 +185,7 @@ impl TabsBridge {
         )
     );
     fn sync_started(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        // Ok(FerryTask::for_sync_started(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
-        unimplemented!();
+        Ok(FerryTask::for_sync_started(&*self.store()?, callback)?.dispatch(&self.queue)?)
     }
 
     xpcom_method!(
@@ -229,19 +199,17 @@ impl TabsBridge {
         incoming_envelopes_json: Option<&ThinVec<nsCString>>,
         callback: &mozIBridgedSyncEngineCallback,
     ) -> Result<()> {
-        // Ok(FerryTask::for_store_incoming(
-        //     &*self.store()?.lock(),
-        //     incoming_envelopes_json.map(|v| v.as_slice()).unwrap_or(&[]),
-        //     callback,
-        // )?
-        // .dispatch(&self.queue)?)
-        unimplemented!();
+        Ok(FerryTask::for_store_incoming(
+            &*self.store()?,
+            incoming_envelopes_json.map(|v| v.as_slice()).unwrap_or(&[]),
+            callback,
+        )?
+        .dispatch(&self.queue)?)
     }
 
     xpcom_method!(apply => Apply(callback: *const mozIBridgedSyncEngineApplyCallback));
     fn apply(&self, callback: &mozIBridgedSyncEngineApplyCallback) -> Result<()> {
-        // Ok(ApplyTask::new(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
-        unimplemented!();
+        Ok(ApplyTask::new(&*self.store()?, callback)?.dispatch(&self.queue)?)
     }
 
     xpcom_method!(
@@ -257,14 +225,13 @@ impl TabsBridge {
         uploaded_ids: Option<&ThinVec<nsCString>>,
         callback: &mozIBridgedSyncEngineCallback,
     ) -> Result<()> {
-        // Ok(FerryTask::for_set_uploaded(
-        //     &*self.store()?.lock(),
-        //     server_modified_millis,
-        //     uploaded_ids.map(|v| v.as_slice()).unwrap_or(&[]),
-        //     callback,
-        // )?
-        // .dispatch(&self.queue)?)
-        unimplemented!();
+        Ok(FerryTask::for_set_uploaded(
+            &*self.store()?,
+            server_modified_millis,
+            uploaded_ids.map(|v| v.as_slice()).unwrap_or(&[]),
+            callback,
+        )?
+        .dispatch(&self.queue)?)
     }
 
     xpcom_method!(
@@ -273,11 +240,7 @@ impl TabsBridge {
         )
     );
     fn sync_finished(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        // Ok(
-        //     FerryTask::for_sync_finished(&*self.store()?.lock(), callback)?
-        //         .dispatch(&self.queue)?,
-        // )
-        unimplemented!();
+        Ok(FerryTask::for_sync_finished(&*self.store()?, callback)?.dispatch(&self.queue)?)
     }
 
     xpcom_method!(
@@ -286,8 +249,7 @@ impl TabsBridge {
         )
     );
     fn reset(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        // Ok(FerryTask::for_reset(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
-        unimplemented!();
+        Ok(FerryTask::for_reset(&*self.store()?, callback)?.dispatch(&self.queue)?)
     }
 
     xpcom_method!(
@@ -296,7 +258,6 @@ impl TabsBridge {
         )
     );
     fn wipe(&self, callback: &mozIBridgedSyncEngineCallback) -> Result<()> {
-        // Ok(FerryTask::for_wipe(&*self.store()?.lock(), callback)?.dispatch(&self.queue)?)
-        unimplemented!();
+        Ok(FerryTask::for_wipe(&*self.store()?, callback)?.dispatch(&self.queue)?)
     }
 }
