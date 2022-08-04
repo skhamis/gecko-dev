@@ -157,11 +157,12 @@ midir = { git = "https://github.com/mozilla/midir.git", rev = "e1b4dcb767f9e69af
 minidump_writer_linux = { git = "https://github.com/rust-minidump/minidump-writer.git", rev = "75ada456c92a429704691a85e1cb42fef8cafc0d" }
 
 # application-services overrides to make updating them all simpler.
-interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "d8503475f43dbf1d78eef4e23b0578d0fada3f39" }
-sql-support = { git = "https://github.com/mozilla/application-services", rev = "d8503475f43dbf1d78eef4e23b0578d0fada3f39" }
-sync15 = { git = "https://github.com/mozilla/application-services", rev = "d8503475f43dbf1d78eef4e23b0578d0fada3f39" }
-viaduct = { git = "https://github.com/mozilla/application-services", rev = "d8503475f43dbf1d78eef4e23b0578d0fada3f39" }
-webext-storage = { git = "https://github.com/mozilla/application-services", rev = "d8503475f43dbf1d78eef4e23b0578d0fada3f39" }
+interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "d894593bbf1139833d6c1eea820b0054e9e60e31" }
+sql-support = { git = "https://github.com/mozilla/application-services", rev = "d894593bbf1139833d6c1eea820b0054e9e60e31" }
+sync15 = { git = "https://github.com/mozilla/application-services", rev = "d894593bbf1139833d6c1eea820b0054e9e60e31" }
+tabs = { git = "https://github.com/mozilla/application-services", rev = "d894593bbf1139833d6c1eea820b0054e9e60e31" }
+viaduct = { git = "https://github.com/mozilla/application-services", rev = "d894593bbf1139833d6c1eea820b0054e9e60e31" }
+webext-storage = { git = "https://github.com/mozilla/application-services", rev = "d894593bbf1139833d6c1eea820b0054e9e60e31" }
 
 # Patch mio 0.6 to use winapi 0.3 and miow 0.3, getting rid of winapi 0.2.
 # There is not going to be new version of mio 0.6, mio now being >= 0.7.11.
