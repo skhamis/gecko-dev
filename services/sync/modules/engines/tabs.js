@@ -130,10 +130,13 @@ TabEngine.prototype = {
       return;
     }
 
-    // Quick write adjusts the lasySync so we can post sucessfully to the server
+    // Quick write adjusts the lastSync so we can post sucessfully to the server
     // see quickWrite() for details
-    // We set this to zero so we always grab the most recent tabs
-    await this._bridge.setLastSync(0);
+    // Just incase we crashed while the lasySync timestamp was FAR_FUTURE, we
+    // reset it to zero
+    if ((await this.getLastSync()) === FAR_FUTURE) {
+      await this._bridge.setLastSync(0);
+    }
     await this._bridge.prepareForSync(JSON.stringify(clientData));
   },
 
@@ -155,9 +158,6 @@ TabEngine.prototype = {
     this._bridge.allowSkippedRecord = true;
 
     this._log.info("Got a bridged engine!");
-
-    // Reset the client on every startup so that we fetch recent tabs.
-    await this._resetClient();
     this._tracker.modified = true;
   },
 
