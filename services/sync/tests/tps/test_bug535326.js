@@ -10,6 +10,7 @@ EnableEngines(["tabs"]);
  */
 var phases = { phase1: "profile1", phase2: "profile2" };
 
+// TODO: we don't sync data: URIs anymore, the original bug was to test the limit of 25 tabs, still keep?
 var tabs1 = [
   {
     uri:

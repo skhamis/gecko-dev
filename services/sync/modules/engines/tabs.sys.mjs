@@ -77,6 +77,7 @@ TabEngine.prototype = {
 
     // We shouldn't upload tabs past what the server will accept
     let tabs = await this.getTabsWithinPayloadSize();
+    console.log("storing tabs: ", tabs);
     await this._rustStore.setLocalTabs(
       tabs.map(tab => {
         // rust wants lastUsed in MS but the provider gives it in seconds
@@ -160,12 +161,21 @@ TabEngine.prototype = {
     for (let remoteClient of this.service.clientsEngine.remoteClients) {
       // We get the some client info from the rust tabs engine and some from
       // the clients engine.
+      // remoteClient for TPS tests is coming in as id rather than fxaDeviceId....
       let rustClient = remoteTabs.find(
-        x => x.clientId === remoteClient.fxaDeviceId
+        x =>
+          x.clientId === remoteClient.fxaDeviceId ||
+          x.clientId === remoteClient.id
       );
+      console.log("--------------- getAllClients()------");
+      console.log("getAllClients() -- remoteTabs: ", remoteTabs);
+      console.log("getallClients() -- remoteClient: ", remoteClient);
       if (!rustClient) {
+        console.log("rustClient: ", rustClient);
+        console.log("did not find a matching client for: ", remoteClient);
         continue;
       }
+      console.log("we found a rustClient matching the clientsEngine");
       let client = {
         // rust gives us ms but js uses seconds, so fix them up.
         tabs: rustClient.remoteTabs.map(tab => {

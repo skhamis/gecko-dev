@@ -70,7 +70,11 @@ export var BrowserTabs = {
     for (let client of Weave.Service.clientsEngine.remoteClients) {
       let tabClients = await tabEngine.getAllClients();
       let tabClient = tabClients.find(x => x.id === client.id);
+      console.log("TPS TEST -- FIND ");
+      console.log("we're looking for client: ", client);
+      console.log("in: ", tabClients);
       if (!tabClient || !tabClient.tabs) {
+        console.log("tab client is either null OR tabs is empty: ", tabClient);
         continue;
       }
       for (let key in tabClient.tabs) {
@@ -78,6 +82,7 @@ export var BrowserTabs = {
         let weaveTabUrl = tab.urlHistory[0];
         if (uri == weaveTabUrl && profile == client.name) {
           if (title == undefined || title == tab.title) {
+            console.log("found the tabs we're looking for");
             return true;
           }
         }
@@ -87,6 +92,7 @@ export var BrowserTabs = {
           JSON.stringify(tabClient.tabs, null, 2)
       );
     }
+    console.log(`did not find the: ${uri} ${title} for ${profile}`);
     return false;
   },
 };

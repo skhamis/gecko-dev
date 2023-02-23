@@ -18,7 +18,7 @@ var phases = {
 /*
  * Tabs data
  */
-
+// TODO: we don't sync data: URIs anymore, guessing by the conjumbled name it's testing private tabs
 var tabs1 = [
   {
     uri:

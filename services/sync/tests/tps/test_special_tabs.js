@@ -11,7 +11,7 @@
 EnableEngines(["tabs"]);
 
 var phases = { phase1: "profile1", phase2: "profile2" };
-
+// TODO: we don't sync data: URIs anymore, guessing by the conjumbled name it's testing private tabs
 var tabs1 = [
   {
     uri:
