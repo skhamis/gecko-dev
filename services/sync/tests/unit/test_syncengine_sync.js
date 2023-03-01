@@ -1098,6 +1098,13 @@ add_task(async function test_processIncoming_decrypt_failed() {
     let ping = await sync_engine_and_validate_telem(engine, true);
     Assert.equal(ping.engines[0].incoming.applied, 2);
     Assert.equal(ping.engines[0].incoming.failed, 4);
+    console.log("incoming telem: ", ping.engines[0].incoming);
+    Assert.equal(
+      ping.engines[0].incoming.failedReasons[0].name,
+      "No ciphertext: nothing to decrypt?"
+    );
+    // There should be 4 of the same error
+    Assert.equal(ping.engines[0].incoming.failedReasons[0].count, 4);
 
     Assert.equal(engine.previousFailed.size, 4);
     Assert.ok(engine.previousFailed.has("nojson"));
@@ -1390,6 +1397,7 @@ async function createRecordFailTelemetry(allowSkippedRecord) {
   } finally {
     // We reported in telemetry that we failed a record
     Assert.equal(ping.engines[0].outgoing[0].failed, 1);
+    Assert.equal(ping.engines[0].outgoing[0].failedReasons[0].name, "oops");
 
     // In any case, the 'scotsman' record couldn't be created so it wasn't
     // uploaded nor it was not cleared from the tracker.

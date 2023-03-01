@@ -289,6 +289,7 @@ add_task(async function test_upload_failed() {
     equal(ping.engines.length, 1);
     equal(ping.engines[0].incoming, null);
     deepEqual(ping.engines[0].outgoing, [{ sent: 3, failed: 2 }]);
+    //TODO: add outgoing failure reasons test
     await engine.setLastSync(123);
 
     changes = await engine._tracker.getChangedIDs();
@@ -392,6 +393,7 @@ add_task(async function test_sync_partialUpload() {
     deepEqual(ping.engines[0].incoming, {
       failed: 1,
     });
+    // add incoming failure reasons here
     ok(!ping.engines[0].outgoing);
     deepEqual(ping.engines[0].failureReason, uploadFailureError);
   } finally {

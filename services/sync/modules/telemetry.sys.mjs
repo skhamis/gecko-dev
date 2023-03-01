@@ -369,7 +369,7 @@ class EngineRecord {
 
     let incomingData = {};
     // Counts has extra stuff used for logging, but we only care about a few
-    let properties = ["applied", "failed"];
+    let properties = ["applied", "failed", "failedReasons"];
     // Only record non-zero properties and only record incoming at all if
     // there's at least one property we care about.
     for (let property of properties) {
@@ -439,6 +439,7 @@ class EngineRecord {
       this.outgoing.push({
         sent: counts.sent || undefined,
         failed: counts.failed || undefined,
+        failedReasons: counts.failedReasons || undefined,
       });
     }
   }

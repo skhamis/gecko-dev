@@ -352,6 +352,12 @@ export function Store(name, engine) {
   this.name = name.toLowerCase();
   this.engine = engine;
 
+  // We keep track of individual records failure across all methods since
+  // we don't actually want to return every records specific failure and
+  // just the failures with a high rate (to keep memory overhead low)
+  // This should only be valid when there are actual failed records
+  this._recordFailedReasons = null;
+
   this._log = Log.repository.getLogger(`Sync.Engine.${name}.Store`);
 
   XPCOMUtils.defineLazyGetter(this, "_timer", function() {
@@ -360,6 +366,47 @@ export function Store(name, engine) {
 }
 
 Store.prototype = {
+  // We keep track of individual records failure across all methods since
+  // we don't actually want to return every record-specific failure and
+  // just the failures with a high rate (to keep from too much chatter)
+  addFailedReason(message, count, type) {
+    if (!this._recordFailedReasons) {
+      this._recordFailedReasons = {};
+    }
+
+    this._recordFailedReasons[type] = this.updateFailedReasons(
+      this._recordFailedReasons[type],
+      message,
+      count
+    );
+  },
+
+  updateFailedReasons(obj, message, count) {
+    if (!obj) {
+      obj = {};
+    }
+    if (obj[message]) {
+      obj[message] += count;
+    } else {
+      obj[message] = count;
+    }
+    return obj;
+  },
+
+  getRecordFailedReasons(type) {
+    if (
+      !this._recordFailedReasons ||
+      !this._recordFailedReasons.hasOwnProperty(type)
+    ) {
+      return null;
+    }
+    // We make this match the SyncPing schema
+    return Object.entries(this._recordFailedReasons[type]).map(
+      ([key, value]) => {
+        return { name: key, count: value };
+      }
+    );
+  },
   /**
    * Apply multiple incoming records against the store.
    *
@@ -393,6 +440,7 @@ Store.prototype = {
         }
         this._log.warn("Failed to apply incoming record " + record.id, ex);
         failed.push(record.id);
+        this.addFailedReason(ex.message, 1, "incoming");
       }
     });
 
@@ -1232,7 +1280,14 @@ SyncEngine.prototype = {
     // failed     => number of items that failed in this sync.
     // newFailed  => number of items that failed for the first time in this sync.
     // reconciled => number of items that were reconciled.
-    let count = { applied: 0, failed: 0, newFailed: 0, reconciled: 0 };
+    // failedReasons => {message, count} of reasons a record failed
+    let count = {
+      applied: 0,
+      failed: 0,
+      newFailed: 0,
+      reconciled: 0,
+      failedReasons: null,
+    };
     let recordsToApply = [];
     let failedInCurrentSync = new SerializableSet();
 
@@ -1260,6 +1315,7 @@ SyncEngine.prototype = {
         if (error) {
           failedInCurrentSync.add(record.id);
           count.failed++;
+          this._store.addFailedReason(error.message, 1, "incoming");
           return;
         }
         if (!shouldApply) {
@@ -1359,6 +1415,7 @@ SyncEngine.prototype = {
           if (error) {
             failedInBackfill.push(record.id);
             count.failed++;
+            this._store.addFailedReason(error.message, 1, "incoming");
             return;
           }
           if (!shouldApply) {
@@ -1395,6 +1452,11 @@ SyncEngine.prototype = {
     }
 
     count.succeeded = Math.max(0, count.applied - count.failed);
+    // The store has what errors failed and how many, so we add it to our telem
+    // in a way SyncPing can understand
+    count.failedReasons = this._store.getRecordFailedReasons("incoming");
+    // bad lol
+    this._store._recordFailedReasons = null;
     this._log.info(
       [
         "Records:",
@@ -1408,6 +1470,8 @@ SyncEngine.prototype = {
         "newly failed to apply,",
         count.reconciled,
         "reconciled.",
+        "failed reason list",
+        count.failedReasons,
       ].join(" ")
     );
     Observers.notify("weave:engine:sync:applied", count, this.name);
@@ -1795,7 +1859,7 @@ SyncEngine.prototype = {
     // collection we'll upload
     let up = new Collection(this.engineURL, null, this.service);
     let modifiedIDs = new Set(this._modified.ids());
-    let counts = { failed: 0, sent: 0 };
+    let counts = { failed: 0, sent: 0, failedReasons: null };
     this._log.info(`Uploading ${modifiedIDs.size} outgoing records`);
     if (modifiedIDs.size) {
       counts.sent = modifiedIDs.size;
@@ -1832,6 +1896,9 @@ SyncEngine.prototype = {
         }
 
         counts.failed += failed.length;
+        Object.values(failed).forEach(message => {
+          this._store.addFailedReason(message, 1, "outgoing");
+        });
 
         for (let id of successful) {
           this._modified.delete(id);
@@ -1871,9 +1938,20 @@ SyncEngine.prototype = {
         } catch (ex) {
           this._log.warn("Error creating record", ex);
           ++counts.failed;
+          this._store.addFailedReason(ex.message, 1, "outgoing");
           if (Async.isShutdownException(ex) || !this.allowSkippedRecord) {
             if (!this.allowSkippedRecord) {
               // Don't bother for shutdown errors
+              counts.failedReasons = this._store.getRecordFailedReasons(
+                "outgoing"
+              );
+              // if (this._store.recordFailedReasons) {
+              //   counts.failedReasons = Object.entries(
+              //     this._store.recordFailedReasons.outgoing
+              //   ).map(([key, value]) => {
+              //     return { name: key, count: value };
+              //   });
+              // }
               Observers.notify("weave:engine:sync:uploaded", counts, this.name);
             }
             throw ex;
@@ -1883,7 +1961,18 @@ SyncEngine.prototype = {
           let { enqueued, error } = await postQueue.enqueue(out);
           if (!enqueued) {
             ++counts.failed;
+            this._store.addFailedReason(error.message, 1, "outgoing");
             if (!this.allowSkippedRecord) {
+              counts.failedReasons = this._store.getRecordFailedReasons(
+                "outgoing"
+              );
+              // if (this._store.recordFailedReasons) {
+              //   counts.failedReasons = Object.entries(
+              //     this._store.recordFailedReasons.outgoing
+              //   ).map(([key, value]) => {
+              //     return { name: key, count: value };
+              //   });
+              // }
               Observers.notify("weave:engine:sync:uploaded", counts, this.name);
               this._log.warn(
                 `Failed to enqueue record "${id}" (aborting)`,
@@ -1904,6 +1993,14 @@ SyncEngine.prototype = {
     }
 
     if (counts.sent || counts.failed) {
+      // if (this._store.recordFailedReasons) {
+      //   counts.failedReasons = Object.entries(
+      //     this._store.recordFailedReasons.outgoing
+      //   ).map(([key, value]) => {
+      //     return { name: key, count: value };
+      //   });
+      // }
+      counts.failedReasons = this._store.getRecordFailedReasons("outgoing");
       Observers.notify("weave:engine:sync:uploaded", counts, this.name);
     }
   },
