@@ -110,6 +110,7 @@ add_task(async function test_no_new_properties_to_export() {
       "timeLastUsed",
       "timePasswordChanged",
       "timesUsed",
+      "unknownFields",
     ],
     "Check that no new properties were added to a login that should maybe be exported"
   );

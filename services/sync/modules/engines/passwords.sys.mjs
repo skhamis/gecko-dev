@@ -76,6 +76,7 @@ Utils.deferGetSet(LoginRec, "cleartext", [
   "passwordField",
   "timeCreated",
   "timePasswordChanged",
+  "unknownFields",
 ]);
 
 export function PasswordEngine(service) {
@@ -248,6 +249,7 @@ PasswordStore.prototype = {
       info.timePasswordChanged = record.timePasswordChanged;
     }
 
+    info.unknownFields = nullUndefined(record.unknownFields);
     return info;
   },
 
@@ -260,6 +262,8 @@ PasswordStore.prototype = {
 
     if (logins.length) {
       this._log.trace(logins.length + " items matching " + id + " found.");
+      this._log.trace("login has: " + logins[0].username);
+      this._log.trace("login has: " + logins[0].unknownFields);
       return logins[0];
     }
 
@@ -329,6 +333,11 @@ PasswordStore.prototype = {
     record.timeCreated = login.timeCreated;
     record.timePasswordChanged = login.timePasswordChanged;
 
+    // unknown fields should be shoved under a nested object
+    console.log("SAMTEST: createRecord: username: ", login.username);
+    console.log("SAMTEST: createRecord: unknownFields: ", login.unknownFields);
+    record.unknownFields = login.unknownFields;
+
     return record;
   },
 
@@ -346,6 +355,11 @@ PasswordStore.prototype = {
         "formSubmitURL: " +
         JSON.stringify(login.formActionOrigin)
     );
+
+    // TEST FOR NOW
+    console.log("SAMTEST: create: unknownFields: ", login.unknownFields);
+    //login.unknownFields = record.unknownFields;
+
     Services.logins.addLogin(login);
   },
 
@@ -373,6 +387,9 @@ PasswordStore.prototype = {
     if (!newinfo) {
       return;
     }
+    this._log.trace("SAMTEST: newinfo " + record.unknownFields);
+    // TEST FOR NOW
+    //newinfo.unknownFields = record.unknownFields;
 
     Services.logins.modifyLogin(loginItem, newinfo);
   },
@@ -471,6 +488,7 @@ export class PasswordValidator extends CollectionValidator {
       "passwordField",
       "username",
       "usernameField",
+      "unknownFields",
     ]);
   }
 
@@ -494,6 +512,7 @@ export class PasswordValidator extends CollectionValidator {
       passwordField: item.passwordField,
       username: item.username,
       usernameField: item.usernameField,
+      unknownFields: item.unknownFields,
       original: item,
     };
   }

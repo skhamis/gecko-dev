@@ -493,3 +493,143 @@ add_task(async function test_sync_password_validation() {
     await cleanup(engine, server);
   }
 });
+
+add_task(async function test_roundtrip_unknown_fields() {
+  _(
+    "Testing that unknown fields from other clients get roundtripped back to server"
+  );
+
+  let engine = Service.engineManager.get("passwords");
+
+  let server = await serverForFoo(engine);
+  await SyncTestingInfrastructure(server);
+  let collection = server.user("foo").collection("passwords");
+
+  enableValidationPrefs();
+
+  _("Add new login to upload during first sync");
+  let newLogin;
+  {
+    let login = new LoginInfo(
+      "https://example.com",
+      "",
+      null,
+      "username",
+      "password",
+      "",
+      ""
+    );
+    Services.logins.addLogin(login);
+
+    let logins = Services.logins.findLogins("https://example.com", "", "");
+    equal(logins.length, 1, "Should find new login in login manager");
+    newLogin = logins[0].QueryInterface(Ci.nsILoginMetaInfo);
+
+    // Insert a server record that's older, so that we prefer the local one.
+    let rec = new LoginRec("passwords", newLogin.guid);
+    rec.formSubmitURL = newLogin.formActionOrigin;
+    rec.httpRealm = newLogin.httpRealm;
+    rec.hostname = newLogin.origin;
+    rec.username = newLogin.username;
+    rec.password = "sekrit";
+    let remotePasswordChangeTime = Date.now() - 1 * 60 * 60 * 24 * 1000;
+    rec.timeCreated = remotePasswordChangeTime;
+    rec.timePasswordChanged = remotePasswordChangeTime;
+
+    // We only initialize unknownFields if we've detected fields we need to roundtrip (but don't sync yet)
+    // TODO: This local record wins, so this will get lost
+    //if (!rec.unknownFields) {
+    //rec.unknownFields = {};
+    rec.unknownFields = "not the str we're looking for";
+    //}
+    // Add "unknown fields" on the server record
+    //rec.unknownFields.unknownStrField = "I am an unknown field";
+    //rec.unknownFields.unknownObjField = {
+    //  unknown: "I am also an unknown field",
+    //};
+    collection.insert(
+      newLogin.guid,
+      encryptPayload(rec.cleartext),
+      remotePasswordChangeTime / 1000
+    );
+  }
+
+  _("Add login with older password change time to replace during first sync");
+  let oldLogin;
+  {
+    let login = new LoginInfo(
+      "https://mozilla.com",
+      "",
+      null,
+      "us3r",
+      "0ldpa55",
+      "",
+      ""
+    );
+    login.unknownFields = "i am a str";
+    Services.logins.addLogin(login);
+
+    let props = new PropertyBag();
+    let localPasswordChangeTime = Date.now() - 1 * 60 * 60 * 24 * 1000;
+    props.setProperty("timePasswordChanged", localPasswordChangeTime);
+    Services.logins.modifyLogin(login, props);
+
+    let logins = Services.logins.findLogins("https://mozilla.com", "", "");
+    equal(logins.length, 1, "Should find old login in login manager");
+    oldLogin = logins[0].QueryInterface(Ci.nsILoginMetaInfo);
+    equal(oldLogin.timePasswordChanged, localPasswordChangeTime);
+
+    let rec = new LoginRec("passwords", oldLogin.guid);
+    rec.hostname = oldLogin.origin;
+    rec.formSubmitURL = oldLogin.formActionOrigin;
+    rec.httpRealm = oldLogin.httpRealm;
+    rec.username = oldLogin.username;
+    // Change the password and bump the password change time to ensure we prefer
+    // the remote one during reconciliation.
+    rec.password = "n3wpa55";
+    rec.usernameField = oldLogin.usernameField;
+    rec.passwordField = oldLogin.usernameField;
+    rec.timeCreated = oldLogin.timeCreated;
+    rec.timePasswordChanged = Date.now();
+
+    // We only initialize unknownFields if we've detected fields we need to roundtrip (but don't sync yet)
+    // TODO: the remote record wins, so we should see this
+    //if (!rec.unknownFields) {
+    //rec.unknownFields = {};
+    rec.unknownFields = "i am a str";
+    //}
+    // Add "unknown fields" on the server record
+    //rec.unknownFields.unknownStrField = "I am an unknown field";
+    // rec.unknownFields.unknownObjField = {
+    //   unknown: "I am also an unknown field",
+    // };
+    //console.log("SAMTEST: rec after: ", rec);
+    console.log("SAMTEST: rec cleartext: ", rec.cleartext);
+    collection.insert(oldLogin.guid, encryptPayload(rec.cleartext));
+  }
+
+  await engine._tracker.stop();
+
+  try {
+    await sync_engine_and_validate_telem(engine, false);
+
+    let newRec = collection.cleartext(newLogin.guid);
+    console.log("SAMTEST: newRecord from server after sync: ", newRec);
+    equal(
+      newRec.password,
+      "password",
+      "Should update remote password for newer login"
+    );
+    //equal(newRec.unknownFields, "who am i");
+
+    let logins = Services.logins.findLogins("https://mozilla.com", "", "");
+    equal(
+      logins[0].password,
+      "n3wpa55",
+      "Should update local password for older login"
+    );
+    equal(logins[0].unknownFields, "i am a str");
+  } finally {
+    await cleanup(engine, server);
+  }
+});

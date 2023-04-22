@@ -228,6 +228,10 @@ export class LoginManagerStorage_json {
       loginClone.timesUsed = 1;
     }
 
+    if (!loginClone.unknownFields) {
+      loginClone.unknownFields = login.unknownFields;
+    }
+
     this._store.data.logins.push({
       id: this._store.data.nextId++,
       hostname: loginClone.origin,
@@ -243,6 +247,7 @@ export class LoginManagerStorage_json {
       timeLastUsed: loginClone.timeLastUsed,
       timePasswordChanged: loginClone.timePasswordChanged,
       timesUsed: loginClone.timesUsed,
+      unknownFields: loginClone.unknownFields,
     });
     this._store.saveSoon();
 
@@ -323,6 +328,7 @@ export class LoginManagerStorage_json {
         loginItem.timeLastUsed = newLogin.timeLastUsed;
         loginItem.timePasswordChanged = newLogin.timePasswordChanged;
         loginItem.timesUsed = newLogin.timesUsed;
+        loginItem.unknownFields = newLogin.unknownFields;
         this._store.saveSoon();
         break;
       }
@@ -579,6 +585,7 @@ export class LoginManagerStorage_json {
           case "timeLastUsed":
           case "timePasswordChanged":
           case "timesUsed":
+          case "unknownFields":
             if (wantedValue == null && aLoginItem[storageFieldName]) {
               return false;
             } else if (aLoginItem[storageFieldName] != wantedValue) {
@@ -617,6 +624,9 @@ export class LoginManagerStorage_json {
         login.timeLastUsed = loginItem.timeLastUsed;
         login.timePasswordChanged = loginItem.timePasswordChanged;
         login.timesUsed = loginItem.timesUsed;
+
+        // Any unknown fields along for the ride
+        login.unknownFields = loginItem.unknownFields;
         foundLogins.push(login);
         foundIds.push(loginItem.id);
       }

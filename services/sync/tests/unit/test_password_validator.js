@@ -40,6 +40,9 @@ function getDummyServerAndClient() {
         username: "quux",
         usernameField: "user",
         httpRealm: null,
+        // Fields from other clients that are currently unknown to us
+        unknownStringField: "unknown 1",
+        unknownObjField: { new: "cool stuffs" },
       },
     ],
     client: [

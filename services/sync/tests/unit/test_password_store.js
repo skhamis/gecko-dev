@@ -11,6 +11,8 @@ const { SyncedRecordsTelemetry } = ChromeUtils.importESModule(
   "resource://services-sync/telemetry.sys.mjs"
 );
 
+// TOOD: possibly add tests
+
 async function checkRecord(
   name,
   record,
