@@ -325,3 +325,91 @@ add_task(async function test_history_visit_dedupe_old() {
   await engine.wipeClient();
   await engine.finalize();
 });
+
+add_task(async function test_history_unknown_fields() {
+  let engine = new HistoryEngine(Service);
+  await engine.initialize();
+  let server = await serverForFoo(engine);
+  await SyncTestingInfrastructure(server);
+
+  engine._tracker.start();
+
+  let id = "aaaaaaaaaaaa";
+  let oneHourMS = 60 * 60 * 1000;
+  // Insert a visit with a non-round microsecond timestamp (e.g. it's not evenly
+  // divisible by 1000). This will typically be the case for visits that occur
+  // during normal navigation.
+  let time = (Date.now() - oneHourMS) * 1000 + 555;
+  // We use the low level history api since it lets us provide microseconds
+  let { count } = await rawAddVisit(
+    id,
+    "https://www.example.com",
+    time,
+    PlacesUtils.history.TRANSITIONS.TYPED
+  );
+  equal(count, 1);
+
+  // Check that it was inserted and that we didn't round on the insert.
+  let visits = await PlacesSyncUtils.history.fetchVisitsForURL(
+    "https://www.example.com"
+  );
+  equal(visits.length, 1);
+  equal(visits[0].date, time);
+
+  let collection = server.user("foo").collection("history");
+
+  // Sync the visit up to the server.
+  await sync_engine_and_validate_telem(engine, false);
+
+  collection.updateRecord(
+    id,
+    cleartext => {
+      // Double-check that we didn't round the visit's timestamp to the nearest
+      // millisecond when uploading.
+      equal(cleartext.visits[0].date, time);
+
+      // Add a visit so we can actually apply the server records
+      cleartext.visits.push({
+        date: (Date.now() - oneHourMS / 2) * 1000,
+        type: PlacesUtils.history.TRANSITIONS.LINK,
+        unknownVisitField: "an unknown field could show up in a visit!",
+      });
+      // Add unknown fields to the payload for this URL
+      cleartext.unknownStrField = "an unknown str field";
+      cleartext.unknownObjField = { newfield: "a field within an object" };
+    },
+    new_timestamp() + 10
+  );
+
+  // Force a remote sync.
+  await engine.setLastSync(new_timestamp() - 30);
+  await sync_engine_and_validate_telem(engine, false);
+
+  // Make sure that we didn't duplicate the visit when inserting. (Prior to bug
+  // 1423395, we would insert a duplicate visit, where the timestamp was
+  // effectively `Math.round(microsecondTimestamp / 1000) * 1000`.)
+  visits = await PlacesSyncUtils.history.fetchVisitsForURL(
+    "https://www.example.com"
+  );
+  equal(visits.length, 2);
+
+  let localHistItem = await PlacesUtils.history.fetch(
+    "https://www.example.com",
+    {
+      includeVisits: true,
+    }
+  );
+
+  console.log("SAMDEBUG_:");
+  console.log("server payloads: ", collection.payloads());
+  console.log("PlacesSyncUtils.fetchVisitsForURL: ", visits);
+  console.log("PlacesUtils.fetch: ", localHistItem);
+  Assert.equal(localHistItem.guid, "aaaaaaaaaaaa");
+  Assert.equal(localHistItem.url, "https://www.example.com/");
+
+  Assert.equal(localHistItem.unknownStrField, "an unknown str field");
+  // SAM_TODO: Also add test for unknown field visits
+
+  await engine.wipeClient();
+  await engine.finalize();
+});

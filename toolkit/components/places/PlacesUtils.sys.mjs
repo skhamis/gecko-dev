@@ -396,6 +396,16 @@ const PAGEINFO_VALIDATORS = Object.freeze({
     }
     return visits;
   },
+  unknownFields: v => {
+    if (v == null || v == undefined) {
+      return undefined;
+    } else if (typeof v === "string") {
+      return v;
+    }
+    throw new TypeError(
+      `unknownFields property of PageInfo object: ${v} must be a string if provided`
+    );
+  },
 });
 
 export var PlacesUtils = {

@@ -29,6 +29,7 @@
       ", recalc_frecency INTEGER NOT NULL DEFAULT 0"     \
       ", alt_frecency INTEGER"                           \
       ", recalc_alt_frecency INTEGER NOT NULL DEFAULT 0" \
+      ", unknown_fields TEXT"                            \
       ")")
 
 #define CREATE_MOZ_HISTORYVISITS            \
@@ -42,6 +43,7 @@
       ", session INTEGER"                   \
       ", source INTEGER DEFAULT 0 NOT NULL" \
       ", triggeringPlaceId INTEGER"         \
+      ", unknown_fields TEXT"               \
       ")")
 
 #define CREATE_MOZ_INPUTHISTORY         \

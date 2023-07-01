@@ -835,6 +835,11 @@ function convertForUpdatePlaces(pageInfo) {
     };
     info.visits.push(visit);
   }
+
+  if (pageInfo.unknownFields) {
+    info.unknownFields = pageInfo.unknownFields;
+  }
+
   return info;
 }
 
@@ -1061,7 +1066,7 @@ var fetch = async function (db, guidOrURL, options) {
     pageMetaSelectionFragment = ", description, site_name, preview_image_url";
   }
 
-  let query = `SELECT h.id, guid, url, title, frecency
+  let query = `SELECT h.id, guid, url, title, frecency, unknown_fields
                ${pageMetaSelectionFragment} ${visitSelectionFragment}
                FROM moz_places h ${joinFragment}
                ${whereClauseFragment}
@@ -1097,6 +1102,13 @@ var fetch = async function (db, guidOrURL, options) {
 
       // TODO: Bug #1365913 add referrer URL to the `VisitInfo` data as well.
       pageInfo.visits.push({ date, transition });
+    }
+
+    // Get unknown fields here probs
+    let unknownFields = row.getResultByName("unknown_fields");
+    console.log("SAMDEBUG: unknownFields from the row: ", unknownFields);
+    if (unknownFields) {
+      pageInfo.unknownFields = unknownFields;
     }
   });
 
@@ -1580,6 +1592,8 @@ var insertMany = function (db, pageInfos, onResult, onError) {
 
   for (let pageInfo of pageInfos) {
     let info = convertForUpdatePlaces(pageInfo);
+    // need to ensure convert also has unknown?
+    console.log("convertForUpdatePlaces: info: ", info);
     infos.push(info);
   }
 
@@ -1587,10 +1601,14 @@ var insertMany = function (db, pageInfos, onResult, onError) {
     lazy.asyncHistory.updatePlaces(infos, {
       handleError: (resultCode, result) => {
         let pageInfo = mergeUpdateInfoIntoPageInfo(result);
+        // need to ensure merge also has unknown?
+        console.log("convertForUpdatePlaces: handleError: info: ", pageInfo);
         onErrorData.push(pageInfo);
       },
       handleResult: result => {
         let pageInfo = mergeUpdateInfoIntoPageInfo(result);
+        // need to ensure merge also has unknown?
+        console.log("convertForUpdatePlaces: handleResult: info: ", pageInfo);
         onResultData.push(pageInfo);
       },
       ignoreErrors: !onError,

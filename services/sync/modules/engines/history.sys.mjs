@@ -235,6 +235,8 @@ HistoryStore.prototype = {
         });
       }
       for (let chunk of this._generateChunks(toAdd)) {
+        // need to ensure toAdd/chunks have the unknown field (from _recordToPlaceInfo)
+        console.log("CHUNKY: ", chunk);
         // Per bug 1415560, we ignore any exceptions returned by insertMany
         // as they are likely to be spurious. We do supply an onError handler
         // and log the exceptions seen there as they are likely to be
@@ -454,6 +456,11 @@ HistoryStore.prototype = {
       visits: record.visits,
     };
 
+    // Get the unknown fields from the server and add it to the pageInfo
+    // to be able to roundtrip it back to the server (without processing it)
+    pageInfo.unknownFields = this.extractUnknownFields(record.cleartext);
+    console.log("unknown fields extracted: ", pageInfo.unknownFields);
+
     return pageInfo;
   },
 
@@ -474,6 +481,8 @@ HistoryStore.prototype = {
   async createRecord(id, collection) {
     let foo = await lazy.PlacesSyncUtils.history.fetchURLInfoForGuid(id);
     let record = new HistoryRec(collection, id);
+    console.log("createRecord: foo: ", foo);
+    console.log("createRecord: record: ", record);
     if (foo) {
       record.histUri = foo.url;
       record.title = foo.title;
@@ -498,6 +507,36 @@ HistoryStore.prototype = {
 
   async wipe() {
     return lazy.PlacesSyncUtils.history.wipe();
+  },
+
+  extractUnknownFields(record) {
+    const VALID_HISTORY_FIELDS = [
+      "id",
+      "title",
+      "histUri",
+      "visits",
+      "type",
+      "transition",
+    ];
+    let { unknownFields, hasUnknownFields } = Object.keys(record).reduce(
+      ({ unknownFields, hasUnknownFields }, key) => {
+        if (VALID_HISTORY_FIELDS.includes(key)) {
+          return { unknownFields, hasUnknownFields };
+        }
+        unknownFields[key] = record[key];
+        return { unknownFields, hasUnknownFields: true };
+      },
+      { unknownFields: {}, hasUnknownFields: false }
+    );
+    // If we found some unknown fields, we stringify it to be able
+    // to properly encrypt it for roundtripping since we can't know if
+    // it contained sensitive fields or not
+    if (hasUnknownFields) {
+      // For simplicity, we store the unknown fields as a string
+      // since we never operate on it and just need it for roundtripping
+      return JSON.stringify(unknownFields);
+    }
+    return null;
   },
 };
 Object.setPrototypeOf(HistoryStore.prototype, Store.prototype);

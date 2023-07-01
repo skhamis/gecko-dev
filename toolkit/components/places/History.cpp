@@ -97,6 +97,7 @@ struct VisitData {
     triggeringSearchEngine.SetIsVoid(true);
     triggeringSponsoredURL.SetIsVoid(true);
     triggeringSponsoredURLBaseDomain.SetIsVoid(true);
+    unknownFields.SetIsVoid(true);
   }
 
   explicit VisitData(nsIURI* aURI, nsIURI* aReferrer = nullptr)
@@ -132,6 +133,7 @@ struct VisitData {
     triggeringSearchEngine.SetIsVoid(true);
     triggeringSponsoredURL.SetIsVoid(true);
     triggeringSponsoredURLBaseDomain.SetIsVoid(true);
+    unknownFields.SetIsVoid(true);
   }
 
   /**
@@ -189,6 +191,10 @@ struct VisitData {
   nsCString triggeringSponsoredURLBaseDomain;
   int64_t triggeringSponsoredURLVisitTimeMS;
   bool bookmarked;
+
+  // unknown fields from other clients, we roundtrip this during sync
+  // to prevent data loss from other clients
+  nsString unknownFields;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1131,6 +1137,7 @@ class InsertVisitedURIs final : public Runnable {
 
     nsresult rv;
     nsCOMPtr<mozIStorageStatement> stmt;
+    // SAM_TODO: We need to add unknown fields to visits as well
     stmt = mHistory->GetStatement(
         "INSERT INTO moz_historyvisits "
         "(from_visit, place_id, visit_date, visit_type, session, source, "
@@ -1582,9 +1589,10 @@ nsresult History::InsertPlace(VisitData& aPlace) {
 
   nsCOMPtr<mozIStorageStatement> stmt = GetStatement(
       "INSERT INTO moz_places "
-      "(url, url_hash, title, rev_host, hidden, typed, frecency, guid) "
+      "(url, url_hash, title, rev_host, hidden, typed, frecency, guid, "
+      "unknown_fields) "
       "VALUES (:url, hash(:url), :title, :rev_host, :hidden, :typed, "
-      ":frecency, :guid) ");
+      ":frecency, :guid, :unknown_fields) ");
   NS_ENSURE_STATE(stmt);
   mozStorageStatementScoper scoper(stmt);
 
@@ -1600,6 +1608,14 @@ nsresult History::InsertPlace(VisitData& aPlace) {
     title.Assign(StringHead(aPlace.title, TITLE_LENGTH_MAX));
     rv = stmt->BindStringByName("title"_ns, title);
   }
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // unknown fields stuffs
+  nsString unknownFields = aPlace.unknownFields;
+  if (!unknownFields.IsEmpty()) {
+    rv = stmt->BindStringByName("unknown_fields"_ns, unknownFields);
+  }
+
   NS_ENSURE_SUCCESS(rv, rv);
   rv = stmt->BindInt32ByName("typed"_ns, aPlace.typed);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2160,6 +2176,9 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
     bool isValidGUID = IsValidGUID(guid);
     NS_ENSURE_ARG(guid.IsVoid() || isValidGUID);
 
+    // nsString unknownFields;
+    // GetStringFromJSObject(aCtx, info, "unknownFields", unknownFields);
+
     nsString title;
     GetStringFromJSObject(aCtx, info, "title", title);
 
@@ -2202,6 +2221,13 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
         data.title.SetIsVoid(false);
       }
       data.guid = guid;
+
+      // ????
+      // if(!unknownFields.IsEmpty()) {
+      //   data.unknownFields = unknownFields;
+      // } else if (!unknownFields.IsVoid()) {
+      //   data.unknownFields.SetIsVoid(false);
+      // }
 
       // We must have a date and a transaction type!
       rv = GetIntFromJSObject(aCtx, visit, "visitDate", &data.visitTime);
@@ -2256,6 +2282,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
   // CanAddURI, which isn't an error.  If we have no visits to add, however,
   // we should not call InsertVisitedURIs::Start.
   if (visitData.Length()) {
+    // This is most likely what is inserting into the DB?
     nsresult rv = InsertVisitedURIs::Start(dbConn, std::move(visitData),
                                            callback, initialUpdatedCount);
     NS_ENSURE_SUCCESS(rv, rv);
