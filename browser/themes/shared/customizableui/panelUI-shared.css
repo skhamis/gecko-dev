@@ -1301,6 +1301,7 @@ panelview .toolbarbutton-1 {
 }
 
 .PanelUI-remotetabs-clientcontainer > toolbarbutton[itemtype="tab"],
+.PanelUI-remotetabs-clientcontainer > hbox > toolbarbutton[itemtype="tab"],
 #PanelUI-historyItems > toolbarbutton {
   list-style-image: url("chrome://global/skin/icons/defaultFavicon.svg");
   -moz-context-properties: fill;
@@ -1311,6 +1312,7 @@ panelview .toolbarbutton-1 {
 #appMenu-fxa-label > .toolbarbutton-icon,
 #PanelUI-containersItems > .subviewbutton > .toolbarbutton-icon,
 .PanelUI-remotetabs-clientcontainer > toolbarbutton[itemtype="tab"] > .toolbarbutton-icon,
+.PanelUI-remotetabs-clientcontainer > hbox>toolbarbutton[itemtype="tab"] > .toolbarbutton-icon,
 #PanelUI-recentlyClosedWindows > toolbarbutton > .toolbarbutton-icon,
 #PanelUI-recentlyClosedTabs > toolbarbutton > .toolbarbutton-icon,
 #PanelUI-historyItems > toolbarbutton > .toolbarbutton-icon {

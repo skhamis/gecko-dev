@@ -5,9 +5,14 @@
 import {
   COMMAND_SENDTAB,
   COMMAND_SENDTAB_TAIL,
+  COMMAND_CLOSETAB,
   SCOPE_OLD_SYNC,
   log,
 } from "resource://gre/modules/FxAccountsCommon.sys.mjs";
+
+import {
+  RemoteTabs
+} from "resource://gre/modules/RemoteTabs.sys.mjs";
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
@@ -36,17 +41,20 @@ export class FxAccountsCommands {
   constructor(fxAccountsInternal) {
     this._fxai = fxAccountsInternal;
     this.sendTab = new SendTab(this, fxAccountsInternal);
+    this.remoteTab = new RemoteTabs(this, fxAccountsInternal);
     this._invokeRateLimitExpiry = 0;
   }
 
   async availableCommands() {
     const encryptedSendTabKeys = await this.sendTab.getEncryptedSendTabKeys();
-    if (!encryptedSendTabKeys) {
+    const encryptedRemoteTabKeys = await this.remoteTab.getEncryptedRemoteTabKeys();
+    if (!encryptedSendTabKeys && !encryptedRemoteTabKeys) {
       // This will happen if the account is not verified yet.
       return {};
     }
     return {
       [COMMAND_SENDTAB]: encryptedSendTabKeys,
+      [COMMAND_CLOSETAB]: encryptedRemoteTabKeys,
     };
   }
 
@@ -166,6 +174,7 @@ export class FxAccountsCommands {
     }
     // We debounce multiple incoming tabs so we show a single notification.
     const tabsReceived = [];
+    const tabsToClose = [];
     for (const { index, data } of messages) {
       const { command, payload, sender: senderId } = data;
       const reason = this._getReason(notifiedIndex, index);
@@ -179,6 +188,24 @@ export class FxAccountsCommands {
         );
       }
       switch (command) {
+        case COMMAND_CLOSETAB:
+          try {
+            const { urls } = await this.remoteTab.handleRemoteTabClose(
+              senderId,
+              payload,
+              reason
+            );
+            log.info(
+              `Close Tab received with FxA commands: "${urls.length} tabs"
+               from ${sender ? sender.name : "Unknown device"}.`
+            );
+            // URLs are PII, so only logged at trace.
+            log.trace(`Close Remote Tabs received URLs: ${urls}`);
+            tabsToClose.push({ urls, sender });
+          } catch (e) {
+            log.error(`Error while handling incoming Close Tab payload.`, e);
+          }
+          break;
         case COMMAND_SENDTAB:
           try {
             const { title, uri } = await this.sendTab.handle(
@@ -187,8 +214,7 @@ export class FxAccountsCommands {
               reason
             );
             log.info(
-              `Tab received with FxA commands: "${
-                title || "<no title>"
+              `Tab received with FxA commands: "${title || "<no title>"
               }" from ${sender ? sender.name : "Unknown device"}.`
             );
             // URLs are PII, so only logged at trace.
@@ -212,10 +238,17 @@ export class FxAccountsCommands {
     if (tabsReceived.length) {
       this._notifyFxATabsReceived(tabsReceived);
     }
+    if (tabsToClose.length) {
+      this._notifyFxATabsClosed(tabsToClose);
+    }
   }
 
   _notifyFxATabsReceived(tabsReceived) {
     Observers.notify("fxaccounts:commands:open-uri", tabsReceived);
+  }
+
+  _notifyFxATabsClosed(tabsToClose) {
+    Observers.notify("fxaccounts:commands:close-uri", tabsToClose);
   }
 }
 

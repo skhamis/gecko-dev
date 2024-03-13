@@ -247,9 +247,32 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
       if (hasNextPage) {
         tabs = tabs.slice(0, maxTabs);
       }
+      // We have the client obj but we need the FxA device obj so we use the clients
+      // engine to get us the FxA device
+      let device = fxAccounts.device.recentDeviceList.find(
+        d =>
+          d.id === Weave.Service.clientsEngine.getClientFxaDeviceId(client.id)
+      );
+      let remoteCloseCompatible =
+        device && fxAccounts.commands.remoteTab.isDeviceCompatible(device);
       for (let [index, tab] of tabs.entries()) {
         let tabEnt = this._createSyncedTabElement(tab, index);
-        container.appendChild(tabEnt);
+
+        // We should only add an X button next to tabs if the device
+        // is broadcasting that it can remotely close tabs
+        if (remoteCloseCompatible) {
+          let tabEntContainer = document.createXULElement("hbox");
+          tabEntContainer.style.width = "100%";
+          tabEnt.style.width = "100%";
+          tabEnt.style.maxWidth = "245px";
+          tabEntContainer.appendChild(tabEnt);
+          tabEntContainer.appendChild(
+            this._showCloseTabElement(tab.url, device)
+          );
+          container.appendChild(tabEntContainer);
+        } else {
+          container.appendChild(tabEnt);
+        }
       }
       if (numInactive) {
         let elt = this._createShowInactiveTabsElement(
@@ -345,6 +368,20 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
       this._showSyncedTabs(paginationInfo);
     });
     return showItem;
+  }
+
+  _showCloseTabElement(url, device) {
+    let closeBtn = document.createXULElement("image");
+    // Move this to a style
+    closeBtn.setAttribute("class", "close-icon");
+    closeBtn.style.marginLeft = "auto";
+    closeBtn.style.width = "18px";
+
+    closeBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      gSync.closeRemoteTab(device, url);
+    });
+    return closeBtn;
   }
 
   destroy() {
@@ -1347,6 +1384,50 @@ var gSync = {
       }
     }
     return numFailed < targets.length; // Good enough.
+  },
+
+  async sendRemoteTabCloseCommand(url, target) {
+    // similar to sendTabToDevice
+    // If a primary-password is enabled then it must be unlocked so FxA can get
+    // the encryption keys from the login manager. (If we end up using the "sync"
+    // fallback that would end up prompting by itself, but the FxA command route
+    // will not) - so force that here.
+    let cryptoSDR = Cc["@mozilla.org/login-manager/crypto/SDR;1"].getService(
+      Ci.nsILoginManagerCrypto
+    );
+    if (!cryptoSDR.isLoggedIn) {
+      if (cryptoSDR.uiBusy) {
+        this.log.info("Master password UI is busy - not sending the tabs");
+        return false;
+      }
+      try {
+        cryptoSDR.encrypt("bacon"); // forces the mp prompt.
+      } catch (e) {
+        this.log.info(
+          "Master password remains unlocked - not sending the tabs"
+        );
+        return false;
+      }
+    }
+
+    const report = await fxAccounts.commands.remoteTab.sendRemoteTabClose(
+      target,
+      { url }
+    );
+    for (let { device } of report) {
+      this.log.error(
+        `Failed to close the tab with FxA commands for ${device.id}.`
+      );
+    }
+
+    return true;
+  },
+
+  // The user could be hitting multiple tabs across multiple devices, with a few
+  // seconds in-between -- we do not want to do immediately fire off pushes so we
+  // keep track and fire it off together at a later time
+  async closeRemoteTab(device, url) {
+    fxAccounts.commands.remoteTab.addRemoteTabsToQueue(device, url);
   },
 
   populateSendTabToDevicesMenu(

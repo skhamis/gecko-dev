@@ -1132,6 +1132,9 @@ BrowserGlue.prototype = {
       case "fxaccounts:commands:open-uri":
         this._onDisplaySyncURIs(subject);
         break;
+      case "fxaccounts:commands:close-uri":
+        this._onCloseRemoteTab(subject);
+        break;
       case "session-save":
         this._setPrefToSaveSession(true);
         subject.QueryInterface(Ci.nsISupportsPRBool);
@@ -1299,6 +1302,7 @@ BrowserGlue.prototype = {
       "fxaccounts:verify_login",
       "fxaccounts:device_disconnected",
       "fxaccounts:commands:open-uri",
+      "fxaccounts:commands:close-uri",
       "session-save",
       "places-init-complete",
       "distribution-customization-complete",
@@ -4705,6 +4709,37 @@ BrowserGlue.prototype = {
       );
     } catch (ex) {
       console.error("Error displaying tab(s) received by Sync: ", ex);
+    }
+  },
+
+  async _onCloseRemoteTab(data) {
+    // The payload is wrapped weirdly because of how Sync does notifications.
+    const wrappedObj = data.wrappedJSObject.object;
+    let { urls } = wrappedObj[0];
+
+    // There could be multiples of the same url that need
+    // to be closed, we should count them to ensure we don't
+    // remove all or not enough
+    const uriCounts = urls.reduce((acc, url) => {
+      acc[url] = (acc[url] || 0) + 1;
+      return acc;
+    }, {});
+
+    for (let win of Services.wm.getEnumerator("navigator:browser")) {
+      // reverse loop since we're potentially removing tabs
+      for (let i = win.gBrowser.tabs.length - 1; i >= 0; i--) {
+        let tab = win.gBrowser.tabs[i];
+        let url = tab.linkedBrowser.currentURI.spec;
+        // There is an issue when there is more than one instance of the same
+        // url, since we're simply finding the first match of that url and
+        // potentially not the one the user expected to close, we'd have to send
+        // over additional data like timestamp to help get closer but that's still
+        // prone to error
+        if (uriCounts[url] > 0) {
+          win.gBrowser.removeTab(tab);
+          uriCounts[url]--;
+        }
+      }
     }
   },
 
