@@ -11,15 +11,15 @@
 
 [sync15]
 crate_name = "sync15"
-udl_file = "third_party/rust/sync15/src/sync15.udl"
+udl_file = "../application-services/components/sync15/src/sync15.udl"
 
 [tabs]
 crate_name = "tabs"
-udl_file = "third_party/rust/tabs/src/tabs.udl"
+udl_file = "../application-services/components/tabs/src/tabs.udl"
 
 [suggest]
 crate_name = "suggest"
-udl_file = "third_party/rust/suggest/src/suggest.udl"
+udl_file = "../application-services/components/suggest/src/suggest.udl"
 
 [suggest.receiver_thread]
 default = "worker"
@@ -31,7 +31,7 @@ main = [
 
 [relevancy]
 crate_name = "relevancy"
-udl_file = "third_party/rust/relevancy/src/relevancy.udl"
+udl_file = "../application-services/components/relevancy/src/relevancy.udl"
 
 [relevancy.receiver_thread]
 default = "worker"
@@ -39,7 +39,7 @@ main = []
 
 [remote_settings]
 crate_name = "remote_settings"
-udl_file = "third_party/rust/remote_settings/src/remote_settings.udl"
+udl_file = "../application-services/components/remote_settings/src/remote_settings.udl"
 
 [remote_settings.receiver_thread]
 default = "worker"

@@ -505,7 +505,7 @@ TabTracker.prototype = {
 
   async observe(subject, topic) {
     switch (topic) {
-      case "domwindowopened":
+      case "domwindowopened": {
         let onLoad = () => {
           subject.removeEventListener("load", onLoad);
           // Only register after the window is done loading to avoid unloads.
@@ -515,6 +515,7 @@ TabTracker.prototype = {
         // Add tab listeners now that a window has opened.
         subject.addEventListener("load", onLoad);
         break;
+      }
     }
   },
 
@@ -539,7 +540,7 @@ TabTracker.prototype = {
          */
         this.callScheduleSync(SCORE_INCREMENT_SMALL);
         break;
-      case "TabClose":
+      case "TabClose": {
         // If event target has `linkedBrowser`, the event target can be assumed <tab> element.
         // Else, event target is assumed <browser> element, use the target as it is.
         const tab = event.target.linkedBrowser || event.target;
@@ -551,6 +552,7 @@ TabTracker.prototype = {
         }
         this.callScheduleSync(SCORE_INCREMENT_SMALL);
         break;
+      }
     }
   },
 

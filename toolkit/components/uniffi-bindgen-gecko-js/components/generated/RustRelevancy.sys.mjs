@@ -360,6 +360,22 @@ export class RelevancyStore {
         }
     }
 
+    close() {
+        const liftResult = (result) => undefined;
+        const liftError = null;
+        const functionCall = () => {
+            return UniFFIScaffolding.callAsync(
+                3, // relevancy:uniffi_relevancy_fn_method_relevancystore_close
+                FfiConverterTypeRelevancyStore.lower(this),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+    }
+
     ingest(topUrls) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
@@ -373,7 +389,7 @@ export class RelevancyStore {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                3, // relevancy:uniffi_relevancy_fn_method_relevancystore_ingest
+                4, // relevancy:uniffi_relevancy_fn_method_relevancystore_ingest
                 FfiConverterTypeRelevancyStore.lower(this),
                 FfiConverterSequencestring.lower(topUrls),
             )
@@ -390,7 +406,7 @@ export class RelevancyStore {
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsync(
-                4, // relevancy:uniffi_relevancy_fn_method_relevancystore_user_interest_vector
+                5, // relevancy:uniffi_relevancy_fn_method_relevancystore_user_interest_vector
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
