@@ -263,11 +263,12 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
 
         let tabEnt = this._createSyncedTabElement(tab, index);
         tabEntContainer.appendChild(tabEnt);
-        // We should only add an X button next to tabs if the device
-        // is broadcasting that it can remotely close tabs
-        if (remoteTabCloseAvailable) {
+        // We only allow closing remote tabs if:
+        // 1. The other client broadcasts support for it
+        // 2. It's not the users most active tab (to prevent closing jankiness)
+        if (remoteTabCloseAvailable && index > 0) {
           tabEntContainer.appendChild(
-            this._createCloseTabElement(tab.url, device)
+            this._createCloseTabElement(tabEntContainer, tab.url, device)
           );
         }
         container.appendChild(tabEntContainer);
@@ -368,18 +369,40 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
     return showItem;
   }
 
-  _createCloseTabElement(url, device) {
+  _createCloseTabElement(tabEntContainer, url, device) {
     let closeBtn = document.createXULElement("image");
     closeBtn.setAttribute("class", "close-icon remotetabs-close");
-
-    closeBtn.addEventListener("click", function (e) {
+    let undoBtn = this._createUndoCloseTabElement(tabEntContainer, url, device);
+    closeBtn.addEventListener("click", e => {
       e.stopPropagation();
+
+      closeBtn.hidden = true;
+      undoBtn.hidden = false;
       // The user could be hitting multiple tabs across multiple devices, with a few
       // seconds in-between -- we should not immediately fire off pushes, so we
       // add it to a queue and send in bulk at a later time
       fxAccounts.commands.closeTab.enqueueTabToClose(device, url);
     });
     return closeBtn;
+  }
+
+  _createUndoCloseTabElement(tabEntContainer, url, device) {
+    let undoBtn = document.createXULElement("button");
+    undoBtn.setAttribute("class", "remotetabs-undo undo-icon");
+    undoBtn.hidden = true;
+
+    undoBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+
+      undoBtn.hidden = true;
+      let closeBtn = tabEntContainer.querySelector(".close-icon.remotetabs-close");
+      if (closeBtn) { closeBtn.hidden = false; }
+
+      // do undo stuffs in fxAccounts.commands.closeTab
+      fxAccounts.commands.closeTab.removePendingTabToClose(device.id, url);
+    });
+    tabEntContainer.appendChild(undoBtn);
+    return undoBtn;
   }
 
   destroy() {

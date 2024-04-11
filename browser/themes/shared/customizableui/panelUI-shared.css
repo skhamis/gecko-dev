@@ -1327,10 +1327,25 @@ panelview .toolbarbutton-1 {
   min-width: 0;
 }
 
-.remotetabs-close {
+.remotetabs-close,
+.remotetabs-undo {
   width: 18px;
   margin-inline-end: 4px;
 }
+
+.undo-icon {
+  appearance: none;
+  -moz-context-properties: fill, fill-opacity;
+  list-style-image: url("chrome://global/skin/icons/undo.svg");
+  border-radius: 4px;
+  color: inherit;
+  fill: currentColor;
+  padding: 2px;
+  width: 20px;
+  height: auto;
+  min-width: 0;
+}
+
 #PanelUI-fxa-menu-account-settings-button > .toolbarbutton-icon {
   border-radius: 50%;
 }

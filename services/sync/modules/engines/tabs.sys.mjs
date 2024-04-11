@@ -23,6 +23,8 @@ import { BridgedEngine } from "resource://services-sync/bridged_engine.sys.mjs";
 
 const FAR_FUTURE = 4102405200000; // 2100/01/01
 
+const TOPIC_TABS_CHANGED = "services.sync.tabs.changed";
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -31,6 +33,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ReaderMode: "resource://gre/modules/ReaderMode.sys.mjs",
   TabsStore: "resource://gre/modules/RustTabs.sys.mjs",
   RemoteTabRecord: "resource://gre/modules/RustTabs.sys.mjs",
+  TabsRequestedClose: "resource://gre/modules/RustTabs.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -191,6 +194,24 @@ TabEngine.prototype = {
     // See bug 535326 comment 8 for an explanation of the estimation
     const maxSerializedSize = (maxPayloadSize / 4) * 3 - 1500;
     return TabProvider.getAllTabsWithEstimatedMax(true, maxSerializedSize);
+  },
+
+  /**
+   * @param {object[]} pendingTabsPerClient
+   * @param {String} pendingTabsPerClient.clientId -
+   *  Id of the remote client the list of urls belong to
+   * @param {String[]} pendingTabsPerClient.urls -
+   *  list of urls requested to be closed and should be hidden from the user
+ */
+  async hidePendingCloseTabCommands(pendingTabsPerClient) {
+    if (!pendingTabsPerClient.length) {
+      this._log.info("Invalid array sent");
+      return;
+    }
+    await this._rustStore.addPendingRemoteTabClosure(pendingTabsPerClient.map(clientTabs => {
+      return new lazy.TabsRequestedClose({ clientId: clientTabs.clientId, urls: clientTabs.urls });
+    }));
+    Services.obs.notifyObservers(null, TOPIC_TABS_CHANGED);
   },
 
   // Support for "quick writes"

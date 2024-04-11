@@ -23,6 +23,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BulkKeyBundle: "resource://services-sync/keys.sys.mjs",
   CryptoWrapper: "resource://services-sync/record.sys.mjs",
   PushCrypto: "resource://gre/modules/PushCrypto.sys.mjs",
+  Weave: "resource://services-sync/main.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -529,21 +530,36 @@ export class CloseRemoteTab {
    */
   /**
    * @param {Device} targetDevice - Device object (typically returned by fxAccounts.getDevicesList()).
-   * @param {String} tab - url for the tab to close
-   * @param {Integer} how far to delay, in miliseconds, the push for this timer
+   * @param {String} url - string of the tab to close
+   * @param {Integer}[optional] how far to delay, in miliseconds, the push for this timer, default = 6s
    */
-  enqueueTabToClose(targetDevice, tab, pushDelay = 6000) {
+  enqueueTabToClose(targetDevice, url, pushDelay = 6000) {
     if (this.pendingClosedTabs.has(targetDevice.id)) {
-      this.pendingClosedTabs.get(targetDevice.id).tabs.push(tab);
+      this.pendingClosedTabs.get(targetDevice.id).urls.push(url);
     } else {
       this.pendingClosedTabs.set(targetDevice.id, {
         device: targetDevice,
-        tabs: [tab],
+        urls: [url],
       });
     }
 
     // extend the timer
     this._refreshPushTimer(targetDevice.id, pushDelay);
+  }
+
+  removePendingTabToClose(deviceId, url, pushDelay = 6000) {
+    if (!this.pendingClosedTabs.has(deviceId)) {
+      // We don't have this client pending anymore
+      return;
+    }
+    const index = this.pendingClosedTabs.get(deviceId).urls.indexOf(url);
+    if (index >= 0) {
+      // Remove the target URL
+      this.pendingClosedTabs.get(deviceId).urls.splice(index, 1);
+    }
+
+    // extend the timer
+    this._refreshPushTimer(deviceId, pushDelay);
   }
 
   async _refreshPushTimer(deviceId, pushDelay) {
@@ -557,14 +573,12 @@ export class CloseRemoteTab {
     // we should catch the browser as it's closing and immediately fire these
     // See https://bugzilla.mozilla.org/show_bug.cgi?id=1888299
     const timerId = setTimeout(async () => {
-      let { device, tabs } = this.pendingClosedTabs.get(deviceId);
+      let { device, urls } = this.pendingClosedTabs.get(deviceId);
       // send a push notification for this specific device
-      await this._sendCloseTabPush(device, tabs);
+      await this._sendCloseTabPush(device, urls);
 
-      // Clear the timer
+      // Remove device from pending list
       this.pushTimers.delete(deviceId);
-      // We also need to locally store the tabs we sent so the user doesn't
-      // see these anymore
       this.pendingClosedTabs.delete(deviceId);
 
       // This is used for tests only, to get around timer woes
@@ -599,6 +613,10 @@ export class CloseRemoteTab {
         this._fxai.telemetry.sanitizeDeviceId(target.id),
         { flowID, streamID }
       );
+      // Tell the rust engine that that we've remotely closed some tabs
+      // and should ignore those tabs for now
+      let engine = lazy.Weave.Service.engineManager.get("tabs");
+      await engine.hidePendingCloseTabCommands([{ clientId: target.id, urls }]);
     } catch (error) {
       // We should also show the user there was some kind've error
       log.error("Error while invoking a send tab command.", error);
